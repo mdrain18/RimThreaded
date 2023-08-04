@@ -1,35 +1,36 @@
-﻿using RimWorld;
-using System;
+﻿using System;
 using System.Threading;
+using RimWorld;
 using UnityEngine;
 using Verse;
 using static RimThreaded.RimThreaded;
 
 namespace RimThreaded.RW_Patches
 {
-    class MoteBubble_Patch
+    internal class MoteBubble_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(MoteBubble);
-            Type patched = typeof(MoteBubble_Patch);
+            var original = typeof(MoteBubble);
+            var patched = typeof(MoteBubble_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(SetupMoteBubble));
         }
+
         public static bool SetupMoteBubble(MoteBubble __instance, Texture2D icon, Pawn target, Color? iconColor = null)
         {
             __instance.iconMat = MaterialPool.MatFrom(icon, ShaderDatabase.TransparentPostLight, Color.white);
             //__instance.iconMatPropertyBlock = new MaterialPropertyBlock();
-            if (!allWorkerThreads.TryGetValue(Thread.CurrentThread, out ThreadInfo threadInfo))
+            if (!allWorkerThreads.TryGetValue(Thread.CurrentThread, out var threadInfo))
             {
                 __instance.iconMatPropertyBlock = new MaterialPropertyBlock();
             }
             else
             {
                 Func<object[], object> FuncMaterialPropertyBlock = parameters => new MaterialPropertyBlock();
-                threadInfo.safeFunctionRequest = new object[] { FuncMaterialPropertyBlock, new object[] { } };
+                threadInfo.safeFunctionRequest = new object[] {FuncMaterialPropertyBlock, new object[] { }};
                 mainThreadWaitHandle.Set();
                 threadInfo.eventWaitStart.WaitOne();
-                __instance.iconMatPropertyBlock = (MaterialPropertyBlock)threadInfo.safeFunctionResult;
+                __instance.iconMatPropertyBlock = (MaterialPropertyBlock) threadInfo.safeFunctionResult;
             }
 
             __instance.arrowTarget = target;

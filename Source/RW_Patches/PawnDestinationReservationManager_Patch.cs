@@ -1,19 +1,17 @@
-﻿using RimWorld;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using RimWorld;
 using Verse;
 using Verse.AI;
 using static Verse.PawnDestinationReservationManager;
-using System;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class PawnDestinationReservationManager_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(PawnDestinationReservationManager);
-            Type patched = typeof(PawnDestinationReservationManager_Patch);
+            var original = typeof(PawnDestinationReservationManager);
+            var patched = typeof(PawnDestinationReservationManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, "GetPawnDestinationSetFor");
             RimThreadedHarmony.Prefix(original, patched, "Notify_FactionRemoved");
             RimThreadedHarmony.Prefix(original, patched, "Reserve");
@@ -24,27 +22,30 @@ namespace RimThreaded.RW_Patches
             //Prefix(original, patched, "FirstObsoleteReservationFor"); //needed? excessive lock? Pawn destination reservation manager failed to clean up properly;
         }
 
-        public static bool GetPawnDestinationSetFor(PawnDestinationReservationManager __instance, ref PawnDestinationSet __result, Faction faction)
+        public static bool GetPawnDestinationSetFor(PawnDestinationReservationManager __instance,
+            ref PawnDestinationSet __result, Faction faction)
         {
             lock (__instance)
             {
-                if (!__instance.reservedDestinations.TryGetValue(faction, out PawnDestinationSet value))
+                if (!__instance.reservedDestinations.TryGetValue(faction, out var value))
                 {
                     value = new PawnDestinationSet();
                     __instance.reservedDestinations.Add(faction, value);
                 }
+
                 __result = value;
             }
 
             return false;
         }
+
         public static bool Reserve(PawnDestinationReservationManager __instance, Pawn p, Job job, IntVec3 loc)
         {
             if (p.Faction != null)
             {
                 if (p.Drafted &&
                     p.Faction == Faction.OfPlayer &&
-                    __instance.IsReserved(loc, out Pawn claimant) &&
+                    __instance.IsReserved(loc, out var claimant) &&
                     claimant != p &&
                     !claimant.HostileTo(p) &&
                     claimant.Faction != p.Faction &&
@@ -52,12 +53,9 @@ namespace RimThreaded.RW_Patches
                         claimant.mindState == null ||
                         claimant.mindState.mentalStateHandler == null ||
                         !claimant.mindState.mentalStateHandler.InMentalState ||
-                        
-                            claimant.mindState.mentalStateHandler.CurStateDef.category != MentalStateCategory.Aggro &&
-                            claimant.mindState.mentalStateHandler.CurStateDef.category != MentalStateCategory.Malicious))
-                {
+                        claimant.mindState.mentalStateHandler.CurStateDef.category != MentalStateCategory.Aggro &&
+                        claimant.mindState.mentalStateHandler.CurStateDef.category != MentalStateCategory.Malicious))
                     claimant.jobs.EndCurrentJob(JobCondition.InterruptForced);
-                }
 
                 __instance.ObsoleteAllClaimedBy(p);
                 lock (__instance)
@@ -70,22 +68,19 @@ namespace RimThreaded.RW_Patches
                     });
                 }
             }
+
             return false;
         }
 
         public static bool ReleaseAllObsoleteClaimedBy(PawnDestinationReservationManager __instance, Pawn p)
         {
-            if (p.Faction == null)
-            {
-                return false;
-            }
+            if (p.Faction == null) return false;
 
             lock (__instance)
             {
-                List<PawnDestinationReservation> list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
-                int num = 0;
+                var list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
+                var num = 0;
                 while (num < list.Count)
-                {
                     if (list[num].claimant == p && list[num].obsolete)
                     {
                         list[num] = list[list.Count - 1];
@@ -95,24 +90,21 @@ namespace RimThreaded.RW_Patches
                     {
                         num++;
                     }
-                }
+
                 __instance.GetPawnDestinationSetFor(p.Faction).list = list;
             }
+
             return false;
         }
 
         public static bool ReleaseAllClaimedBy(PawnDestinationReservationManager __instance, Pawn p)
         {
-            if (p.Faction == null)
-            {
-                return false;
-            }
+            if (p.Faction == null) return false;
             lock (__instance)
             {
-                List<PawnDestinationReservation> list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
-                int num = 0;
+                var list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
+                var num = 0;
                 while (num < list.Count)
-                {
                     if (list[num].claimant == p)
                     {
                         list[num] = list[list.Count - 1];
@@ -122,23 +114,20 @@ namespace RimThreaded.RW_Patches
                     {
                         num++;
                     }
-                }
+
                 __instance.GetPawnDestinationSetFor(p.Faction).list = list;
             }
+
             return false;
         }
 
         public static bool ReleaseClaimedBy(PawnDestinationReservationManager __instance, Pawn p, Job job)
         {
-            if (p.Faction == null)
-            {
-                return false;
-            }
+            if (p.Faction == null) return false;
             lock (__instance)
             {
-                List<PawnDestinationReservation> list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
-                for (int i = 0; i < list.Count; i++)
-                {
+                var list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
+                for (var i = 0; i < list.Count; i++)
                     if (list[i].claimant == p && list[i].job == job)
                     {
                         list[i].job = null;
@@ -149,9 +138,10 @@ namespace RimThreaded.RW_Patches
                             i--;
                         }
                     }
-                }
+
                 __instance.GetPawnDestinationSetFor(p.Faction).list = list;
             }
+
             return false;
         }
 
@@ -161,25 +151,24 @@ namespace RimThreaded.RW_Patches
             {
                 if (__instance.reservedDestinations.ContainsKey(faction))
                 {
-                    Dictionary<Faction, PawnDestinationSet> newReservedDestinations = new Dictionary<Faction, PawnDestinationSet>(__instance.reservedDestinations);
+                    var newReservedDestinations =
+                        new Dictionary<Faction, PawnDestinationSet>(__instance.reservedDestinations);
                     newReservedDestinations.Remove(faction);
                     __instance.reservedDestinations = newReservedDestinations;
                 }
             }
+
             return false;
         }
+
         public static bool ObsoleteAllClaimedBy(PawnDestinationReservationManager __instance, Pawn p)
         {
-            if (p.Faction == null)
-            {
-                return false;
-            }
+            if (p.Faction == null) return false;
 
             lock (__instance)
             {
-                List<PawnDestinationReservation> list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
-                for (int i = 0; i < list.Count; i++)
-                {
+                var list = new List<PawnDestinationReservation>(__instance.GetPawnDestinationSetFor(p.Faction).list);
+                for (var i = 0; i < list.Count; i++)
                     if (list[i].claimant == p)
                     {
                         list[i].obsolete = true;
@@ -190,14 +179,11 @@ namespace RimThreaded.RW_Patches
                             i--;
                         }
                     }
-                }
+
                 __instance.GetPawnDestinationSetFor(p.Faction).list = list;
             }
+
             return false;
         }
-
     }
-
 }
-
-

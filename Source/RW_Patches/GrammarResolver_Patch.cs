@@ -9,7 +9,6 @@ using static HarmonyLib.AccessTools;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class GrammarResolver_Patch
     {
         private static readonly object ResolveUnsafeLock = new object();
@@ -34,21 +33,27 @@ namespace RimThreaded.RW_Patches
             //	typeof(string), typeof(GrammarRequest), typeof(string), typeof(bool), typeof(string), typeof(List<string>), typeof(List<string>), typeof(bool)
             //});
         }
-        public static bool Resolve(ref string __result, string rootKeyword, GrammarRequest request, string debugLabel = null, bool forceLog = false, string untranslatedRootKeyword = null, List<string> extraTags = null, List<string> outTags = null, bool capitalizeFirstSentence = true)
+
+        public static bool Resolve(ref string __result, string rootKeyword, GrammarRequest request,
+            string debugLabel = null, bool forceLog = false, string untranslatedRootKeyword = null,
+            List<string> extraTags = null, List<string> outTags = null, bool capitalizeFirstSentence = true)
         {
             lock (ResolveLock)
             {
                 if (LanguageDatabase.activeLanguage == LanguageDatabase.defaultLanguage)
                 {
-                    __result = GrammarResolver.ResolveUnsafe(rootKeyword, request, debugLabel, forceLog, useUntranslatedRules: false, extraTags, outTags, capitalizeFirstSentence);
+                    __result = GrammarResolver.ResolveUnsafe(rootKeyword, request, debugLabel, forceLog, false,
+                        extraTags, outTags, capitalizeFirstSentence);
                     return false;
                 }
+
                 string text;
                 bool success;
                 Exception ex;
                 try
                 {
-                    text = GrammarResolver.ResolveUnsafe(rootKeyword, request, out success, debugLabel, forceLog, useUntranslatedRules: false, extraTags, outTags, capitalizeFirstSentence);
+                    text = GrammarResolver.ResolveUnsafe(rootKeyword, request, out success, debugLabel, forceLog, false,
+                        extraTags, outTags, capitalizeFirstSentence);
                     ex = null;
                 }
                 catch (Exception ex2)
@@ -57,69 +62,66 @@ namespace RimThreaded.RW_Patches
                     text = "";
                     ex = ex2;
                 }
+
                 if (success)
                 {
                     __result = text;
                     return false;
                 }
-                string text2 = "Failed to resolve text. Trying again with English.";
-                if (ex != null)
-                {
-                    text2 = text2 + " Exception: " + ex;
-                }
+
+                var text2 = "Failed to resolve text. Trying again with English.";
+                if (ex != null) text2 = text2 + " Exception: " + ex;
                 Log.ErrorOnce(text2, text.GetHashCode());
                 outTags?.Clear();
-                __result = GrammarResolver.ResolveUnsafe(untranslatedRootKeyword ?? rootKeyword, request, out success, debugLabel, forceLog, useUntranslatedRules: true, extraTags, outTags, capitalizeFirstSentence);
+                __result = GrammarResolver.ResolveUnsafe(untranslatedRootKeyword ?? rootKeyword, request, out success,
+                    debugLabel, forceLog, true, extraTags, outTags, capitalizeFirstSentence);
                 return false;
             }
         }
 
-        public static IEnumerable<CodeInstruction> ResolveUnsafe(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> ResolveUnsafe(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            List<CodeInstruction> loadLockObjectInstructions = new List<CodeInstruction>
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var loadLockObjectInstructions = new List<CodeInstruction>
             {
                 new CodeInstruction(OpCodes.Ldsfld, Field(patched, nameof(ResolveUnsafeLock)))
             };
-            LocalBuilder lockObject = iLGenerator.DeclareLocal(typeof(object));
-            LocalBuilder lockTaken = iLGenerator.DeclareLocal(typeof(bool));
-            foreach (CodeInstruction ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
+            var lockObject = iLGenerator.DeclareLocal(typeof(object));
+            var lockTaken = iLGenerator.DeclareLocal(typeof(bool));
+            foreach (var ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions,
+                         instructionsList[i]))
                 yield return ci;
-            while (i < instructionsList.Count - 2)
-            {
-                yield return instructionsList[i++];
-            }
-            foreach (CodeInstruction ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
+            while (i < instructionsList.Count - 2) yield return instructionsList[i++];
+            foreach (var ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
                 yield return ci;
             yield return instructionsList[i++];
             yield return instructionsList[i++];
         }
 
-        public static IEnumerable<CodeInstruction> Resolve(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Resolve(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            List<CodeInstruction> loadLockObjectInstructions = new List<CodeInstruction>
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var loadLockObjectInstructions = new List<CodeInstruction>
             {
                 new CodeInstruction(OpCodes.Ldsfld, Field(patched, nameof(ResolveLock)))
             };
-            LocalBuilder lockObject = iLGenerator.DeclareLocal(typeof(object));
-            LocalBuilder lockTaken = iLGenerator.DeclareLocal(typeof(bool));
-            foreach (CodeInstruction ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
+            var lockObject = iLGenerator.DeclareLocal(typeof(object));
+            var lockTaken = iLGenerator.DeclareLocal(typeof(bool));
+            foreach (var ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions,
+                         instructionsList[i]))
                 yield return ci;
-            while (i < instructionsList.Count - 1)
-            {
-                yield return instructionsList[i++];
-            }
-            LocalBuilder stringResult = iLGenerator.DeclareLocal(typeof(string));
+            while (i < instructionsList.Count - 1) yield return instructionsList[i++];
+            var stringResult = iLGenerator.DeclareLocal(typeof(string));
             yield return new CodeInstruction(OpCodes.Stloc, stringResult);
-            foreach (CodeInstruction ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
+            foreach (var ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
                 yield return ci;
             yield return new CodeInstruction(OpCodes.Ldloc, stringResult);
             yield return instructionsList[i++];
             //yield return instructionsList[i++];
         }
-
     }
 }

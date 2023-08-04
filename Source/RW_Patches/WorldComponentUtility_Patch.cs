@@ -1,7 +1,7 @@
-﻿using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using RimWorld.Planet;
 using Verse;
 
 namespace RimThreaded.RW_Patches
@@ -9,6 +9,9 @@ namespace RimThreaded.RW_Patches
     //Class was largely overhauled to allow multithreaded ticking for WorldPawns.Tick()
     public class WorldComponentUtility_Patch
     {
+        public static List<WorldComponent> worldComponents;
+        public static int worldComponentTicks;
+
         public static bool WorldComponentTick(World world)
         {
             worldComponents = world.components;
@@ -18,19 +21,16 @@ namespace RimThreaded.RW_Patches
 
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(WorldComponentUtility);
-            Type patched = typeof(WorldComponentUtility_Patch);
+            var original = typeof(WorldComponentUtility);
+            var patched = typeof(WorldComponentUtility_Patch);
             RimThreadedHarmony.Prefix(original, patched, "WorldComponentTick");
         }
-
-        public static List<WorldComponent> worldComponents;
-        public static int worldComponentTicks;
 
         public static void WorldComponentPrepare()
         {
             try
             {
-                World world = Find.World;
+                var world = Find.World;
                 world.debugDrawer.WorldDebugDrawerTick();
                 world.pathGrid.WorldPathGridTick();
                 WorldComponentUtility.WorldComponentTick(world);
@@ -45,11 +45,10 @@ namespace RimThreaded.RW_Patches
         {
             while (true)
             {
-                int index = Interlocked.Decrement(ref worldComponentTicks);
+                var index = Interlocked.Decrement(ref worldComponentTicks);
                 if (index < 0) return;
-                WorldComponent worldComponent = worldComponents[index];
+                var worldComponent = worldComponents[index];
                 if (null != worldComponent) //TODO: is null-check and lock necessary?
-                {
                     try
                     {
                         worldComponent.WorldComponentTick();
@@ -58,7 +57,6 @@ namespace RimThreaded.RW_Patches
                     {
                         Log.Error("Exception ticking World Component: " + worldComponent.ToStringSafe() + ex);
                     }
-                }
             }
         }
     }

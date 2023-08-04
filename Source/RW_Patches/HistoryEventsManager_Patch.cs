@@ -1,19 +1,21 @@
-﻿using RimWorld;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using RimWorld;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class HistoryEventsManager_Patch
+    internal class HistoryEventsManager_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(HistoryEventsManager);
-            Type patched = typeof(HistoryEventsManager_Patch);
+            var original = typeof(HistoryEventsManager);
+            var patched = typeof(HistoryEventsManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(RecordEvent));
         }
-        public static bool RecordEvent(HistoryEventsManager __instance, HistoryEvent historyEvent, bool canApplySelfTookThoughts = true)
+
+        public static bool RecordEvent(HistoryEventsManager __instance, HistoryEvent historyEvent,
+            bool canApplySelfTookThoughts = true)
         {
             try
             {
@@ -23,27 +25,32 @@ namespace RimThreaded.RW_Patches
             {
                 Log.Error("Error while notifying ideos of a HistoryEvent: " + ex);
             }
+
             int num;
             if (!historyEvent.args.TryGetArg(HistoryEventArgsNames.CustomGoodwill, out num))
                 num = 0;
             Pawn pawn;
             if (historyEvent.args.TryGetArg(HistoryEventArgsNames.Doer, out pawn) && pawn.IsColonist)
             {
-                HistoryEventsManager.HistoryEventRecords colonistEvent = __instance.colonistEvents[historyEvent.def];
+                var colonistEvent = __instance.colonistEvents[historyEvent.def];
                 if (colonistEvent.ticksGame == null)
                 {
                     colonistEvent.ticksGame = new List<int>();
                     colonistEvent.customGoodwill = new List<int>();
                     __instance.colonistEvents[historyEvent.def] = colonistEvent;
                 }
+
                 colonistEvent.ticksGame.Add(Find.TickManager.TicksGame);
                 colonistEvent.customGoodwill.Add(num);
                 if (colonistEvent.ticksGame.Count > historyEvent.def.maxRemembered)
                 {
-                    colonistEvent.ticksGame.RemoveRange(0, colonistEvent.ticksGame.Count - historyEvent.def.maxRemembered);
-                    colonistEvent.customGoodwill.RemoveRange(0, colonistEvent.ticksGame.Count - historyEvent.def.maxRemembered);
+                    colonistEvent.ticksGame.RemoveRange(0,
+                        colonistEvent.ticksGame.Count - historyEvent.def.maxRemembered);
+                    colonistEvent.customGoodwill.RemoveRange(0,
+                        colonistEvent.ticksGame.Count - historyEvent.def.maxRemembered);
                 }
             }
+
             Faction key;
             if (!historyEvent.args.TryGetArg(HistoryEventArgsNames.AffectedFaction, out key))
                 return false;
@@ -56,19 +63,23 @@ namespace RimThreaded.RW_Patches
                     __instance.eventsAffectingFaction.Add(key, defMap);
                 }
             }
-            HistoryEventsManager.HistoryEventRecords historyEventRecords = defMap[historyEvent.def];
+
+            var historyEventRecords = defMap[historyEvent.def];
             if (historyEventRecords.ticksGame == null)
             {
                 historyEventRecords.ticksGame = new List<int>();
                 historyEventRecords.customGoodwill = new List<int>();
                 defMap[historyEvent.def] = historyEventRecords;
             }
+
             historyEventRecords.ticksGame.Add(Find.TickManager.TicksGame);
             historyEventRecords.customGoodwill.Add(num);
             if (historyEventRecords.ticksGame.Count <= historyEvent.def.maxRemembered)
                 return false;
-            historyEventRecords.ticksGame.RemoveRange(0, historyEventRecords.ticksGame.Count - historyEvent.def.maxRemembered);
-            historyEventRecords.customGoodwill.RemoveRange(0, historyEventRecords.ticksGame.Count - historyEvent.def.maxRemembered);
+            historyEventRecords.ticksGame.RemoveRange(0,
+                historyEventRecords.ticksGame.Count - historyEvent.def.maxRemembered);
+            historyEventRecords.customGoodwill.RemoveRange(0,
+                historyEventRecords.ticksGame.Count - historyEvent.def.maxRemembered);
             return false;
         }
     }

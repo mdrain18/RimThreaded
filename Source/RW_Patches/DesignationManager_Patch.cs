@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using RimWorld;
+﻿using System.Collections.Generic;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class DesignationManager_Patch
+    internal class DesignationManager_Patch
     {
         internal static void RunDestructivePatches() //TODO: use better Add and Remove without locks
         {
-            Type original = typeof(DesignationManager);
-            Type patched = typeof(DesignationManager_Patch);
+            var original = typeof(DesignationManager);
+            var patched = typeof(DesignationManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(RemoveDesignation));
             //RimThreadedHarmony.Prefix(original, patched, nameof(RemoveAllDesignationsOn));
             //RimThreadedHarmony.Prefix(original, patched, nameof(RemoveAllDesignationsOfDef));
@@ -47,29 +45,24 @@ namespace RimThreaded.RW_Patches
             if (des.def.targetType == TargetType.Cell)
             {
                 if (__instance.TryGetCellDesignations(des.target.Cell, out var foundDesignations))
-                {
                     foundDesignations.Remove(des);
-                }
                 else
-                {
-                    Log.Warning($"Tried to remove designation with target cell that couldn't be found in index: {des.target.Cell}");
-                }
+                    Log.Warning(
+                        $"Tried to remove designation with target cell that couldn't be found in index: {des.target.Cell}");
             }
             else if (des.def.targetType == TargetType.Thing)
             {
-                Thing thing = des.target.Thing;
-                Dictionary<Thing, List<Designation>> thingDesignations = __instance.thingDesignations;
+                var thing = des.target.Thing;
+                var thingDesignations = __instance.thingDesignations;
                 if (thingDesignations.ContainsKey(thing))
                 {
-                    List<Designation> list = thingDesignations[thing];
+                    var list = thingDesignations[thing];
                     list.Remove(des);
                     if (list.Count == 0)
-                    {
                         lock (thingDesignations) //added
                         {
                             thingDesignations.Remove(des.target.Thing);
                         }
-                    }
                 }
                 else
                 {
@@ -81,11 +74,12 @@ namespace RimThreaded.RW_Patches
                 Log.Error($"Tried to remove designation with unexpected type: {des.def.targetType}");
             }
 
-            List<Designation> designations = __instance.designationsByDef[des.def];
+            var designations = __instance.designationsByDef[des.def];
             lock (designations) //added
             {
                 designations.Remove(des);
             }
+
             __instance.DirtyCellDesignationsCache(des.def);
             return false;
         }
@@ -188,35 +182,35 @@ namespace RimThreaded.RW_Patches
         */
         public static bool IndexDesignation(DesignationManager __instance, Designation designation)
         {
-            List<Designation> designations = __instance.designationsByDef[designation.def];
+            var designations = __instance.designationsByDef[designation.def];
             lock (designations)
             {
                 designations.Add(designation);
             }
+
             __instance.DirtyCellDesignationsCache(designation.def);
             if (designation.def.targetType == TargetType.Thing)
             {
-                Thing thing = designation.target.Thing;
-                Dictionary<Thing, List<Designation>> thingDesignations = __instance.thingDesignations;
-                lock (thingDesignations) {
+                var thing = designation.target.Thing;
+                var thingDesignations = __instance.thingDesignations;
+                lock (thingDesignations)
+                {
                     if (!__instance.thingDesignations.ContainsKey(thing))
-                    {
                         __instance.thingDesignations[thing] = new List<Designation>();
-                    }
                     thingDesignations[thing].Add(designation);
                 }
             }
             else if (designation.def.targetType == TargetType.Cell)
             {
-                IntVec3 cell = designation.target.Cell;
-                Map map = __instance.map; //added
-                int num = map.cellIndices.CellToIndex(cell);
-                List<Designation>[] designationsAtCell = __instance.designationsAtCell;
+                var cell = designation.target.Cell;
+                var map = __instance.map; //added
+                var num = map.cellIndices.CellToIndex(cell);
+                var designationsAtCell = __instance.designationsAtCell;
                 lock (designationsAtCell)
                 {
                     if (num >= 0 && num < designationsAtCell.Length)
                     {
-                        List<Designation> foundDesignations = designationsAtCell[num];
+                        var foundDesignations = designationsAtCell[num];
                         if (foundDesignations == null)
                         {
                             foundDesignations = new List<Designation>
@@ -229,13 +223,14 @@ namespace RimThreaded.RW_Patches
                         {
                             //lock (foundDesignations)
                             //{
-                                foundDesignations.Add(designation);
+                            foundDesignations.Add(designation);
                             //}
                         }
                     }
                     else
                     {
-                        Log.Error($"Tried to create cell target designation at invalid cell: {designation.target.Cell}");
+                        Log.Error(
+                            $"Tried to create cell target designation at invalid cell: {designation.target.Cell}");
                     }
                 }
             }
@@ -243,6 +238,7 @@ namespace RimThreaded.RW_Patches
             {
                 Log.Error($"Tried to index unexpected designation type: {designation.def.targetType}");
             }
+
             return false;
         }
     }

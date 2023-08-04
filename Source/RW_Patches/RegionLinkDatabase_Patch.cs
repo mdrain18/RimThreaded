@@ -1,24 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using Verse;
+﻿using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class RegionLinkDatabase_Patch
+    internal class RegionLinkDatabase_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(RegionLinkDatabase);
-            Type patched = typeof(RegionLinkDatabase_Patch);
+            var original = typeof(RegionLinkDatabase);
+            var patched = typeof(RegionLinkDatabase_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(LinkFrom));
             RimThreadedHarmony.Prefix(original, patched, nameof(Notify_LinkHasNoRegions));
         }
 
         public static bool LinkFrom(RegionLinkDatabase __instance, ref RegionLink __result, EdgeSpan span)
         {
-            ulong key = span.UniqueHashCode();
+            var key = span.UniqueHashCode();
             RegionLink value;
-            Dictionary<ulong, RegionLink> links = __instance.links;
+            var links = __instance.links;
             lock (links)
             {
                 if (!links.TryGetValue(key, out value))
@@ -28,16 +26,19 @@ namespace RimThreaded.RW_Patches
                     links.Add(key, value);
                 }
             }
+
             __result = value;
             return false;
         }
+
         public static bool Notify_LinkHasNoRegions(RegionLinkDatabase __instance, RegionLink link)
         {
-            Dictionary<ulong, RegionLink> links = __instance.links;
+            var links = __instance.links;
             lock (links)
             {
                 links.Remove(link.UniqueHashCode());
             }
+
             return false;
         }
     }

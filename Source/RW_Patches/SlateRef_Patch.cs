@@ -1,8 +1,7 @@
 ﻿namespace RimThreaded.RW_Patches
 {
-    class SlateRef_Patch
+    internal class SlateRef_Patch
     {
-
         //{
         //    "ClassName": "RimWorld.QuestGen.SlateRef`1",
         //    "ThreadStatics": [

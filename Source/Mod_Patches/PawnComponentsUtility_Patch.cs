@@ -5,10 +5,11 @@ using Verse.AI;
 
 namespace RimThreaded
 {
-    class PawnComponentsUtility_Patch
+    internal class PawnComponentsUtility_Patch
     {
         private static readonly Type Original = typeof(PawnComponentsUtility);
         private static readonly Type Patched = typeof(PawnComponentsUtility_Patch);
+
         internal static void RunDestructivePatches()
         {
             //for Children Mod
@@ -28,7 +29,7 @@ namespace RimThreaded
             if (pawn.meleeVerbs == null)
                 pawn.meleeVerbs = new Pawn_MeleeVerbs(pawn);
             if (pawn.verbTracker == null)
-                pawn.verbTracker = new VerbTracker((IVerbOwner)pawn);
+                pawn.verbTracker = new VerbTracker(pawn);
             if (pawn.carryTracker == null)
                 pawn.carryTracker = new Pawn_CarryTracker(pawn);
 
@@ -40,7 +41,7 @@ namespace RimThreaded
             if (pawn.needs == null)
                 pawn.needs = new Pawn_NeedsTracker(pawn);
             //if (pawn.mindState == null)
-                //pawn.mindState = new Pawn_MindState(pawn);
+            //pawn.mindState = new Pawn_MindState(pawn);
             if (pawn.RaceProps.ToolUser)
             {
                 if (pawn.equipment == null)
@@ -48,6 +49,7 @@ namespace RimThreaded
                 if (pawn.apparel == null)
                     pawn.apparel = new Pawn_ApparelTracker(pawn);
             }
+
             if (pawn.RaceProps.Humanlike)
             {
                 if (pawn.ownership == null)
@@ -67,6 +69,7 @@ namespace RimThreaded
                 if (pawn.abilities == null)
                     pawn.abilities = new Pawn_AbilityTracker(pawn);
             }
+
             if (pawn.RaceProps.IsFlesh)
             {
                 if (pawn.relations == null)
@@ -74,6 +77,7 @@ namespace RimThreaded
                 if (pawn.psychicEntropy == null)
                     pawn.psychicEntropy = new Pawn_PsychicEntropyTracker(pawn);
             }
+
             PawnComponentsUtility.AddAndRemoveDynamicComponents(pawn);
             return false;
         }

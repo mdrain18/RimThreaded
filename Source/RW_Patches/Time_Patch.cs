@@ -14,36 +14,46 @@ namespace RimThreaded.RW_Patches
         private static readonly Func<object[], object> FuncGetTime = parameters => Time.time;
 
         private static readonly MethodInfo MethodTimeFrameCount = Method(typeof(Time), nameof(get_frameCount));
-        private static readonly MethodInfo MethodTime_PatchedFrameCount = Method(typeof(Time_Patch), nameof(get_frameCount));
+
+        private static readonly MethodInfo MethodTime_PatchedFrameCount =
+            Method(typeof(Time_Patch), nameof(get_frameCount));
+
         private static readonly Func<object[], object> FuncFrameCount = parameters => Time.frameCount;
 
-        private static readonly MethodInfo MethodTimeRealtimeSinceStartup = Method(typeof(Time), nameof(get_realtimeSinceStartup));
-        private static readonly MethodInfo MethodTime_PatchedRealtimeSinceStartup = Method(typeof(Time_Patch), nameof(get_realtimeSinceStartup));
-        private static readonly Func<object[], object> FuncRealtimeSinceStartup = parameters => Time.realtimeSinceStartup;
+        private static readonly MethodInfo MethodTimeRealtimeSinceStartup =
+            Method(typeof(Time), nameof(get_realtimeSinceStartup));
+
+        private static readonly MethodInfo MethodTime_PatchedRealtimeSinceStartup =
+            Method(typeof(Time_Patch), nameof(get_realtimeSinceStartup));
+
+        private static readonly Func<object[], object> FuncRealtimeSinceStartup =
+            parameters => Time.realtimeSinceStartup;
 
         public static float get_time()
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
+            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo))
                 return Time.time;
-            threadInfo.safeFunctionRequest = new object[] { FuncGetTime, new object[] { } };
+            threadInfo.safeFunctionRequest = new object[] {FuncGetTime, new object[] { }};
             mainThreadWaitHandle.Set();
             threadInfo.eventWaitStart.WaitOne();
-            return (float)threadInfo.safeFunctionResult;
+            return (float) threadInfo.safeFunctionResult;
         }
+
         public static int get_frameCount()
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
+            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo))
                 return Time.frameCount;
             return frameCount;
         }
+
         public static float get_realtimeSinceStartup()
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
+            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo))
                 return Time.realtimeSinceStartup;
-            threadInfo.safeFunctionRequest = new object[] { FuncRealtimeSinceStartup, new object[] { } };
+            threadInfo.safeFunctionRequest = new object[] {FuncRealtimeSinceStartup, new object[] { }};
             mainThreadWaitHandle.Set();
             threadInfo.eventWaitStart.WaitOne();
-            return (float)threadInfo.safeFunctionResult;
+            return (float) threadInfo.safeFunctionResult;
         }
 
         //public static IEnumerable<CodeInstruction> TranspileTimeGetTime(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)

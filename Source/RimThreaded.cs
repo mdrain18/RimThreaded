@@ -1,24 +1,28 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Verse;
-using RimWorld;
-using Verse.Sound;
-using RimWorld.Planet;
-using System.Collections.Concurrent;
 using System.Threading;
-using UnityEngine;
 using RimThreaded.RW_Patches;
+using RimWorld;
+using RimWorld.Planet;
+using UnityEngine;
+using Verse;
+using Verse.Sound;
 
 namespace RimThreaded
 {
     [StaticConstructorOnStartup]
     public class RimThreaded
     {
-        public static Dictionary<Bill_Production, List<Pawn>> billFreeColonistsSpawned = new Dictionary<Bill_Production, List<Pawn>>();
+        public static Dictionary<Bill_Production, List<Pawn>> billFreeColonistsSpawned =
+            new Dictionary<Bill_Production, List<Pawn>>();
 
         public static int maxThreads = Math.Min(Math.Max(int.Parse(RimThreadedMod.Settings.maxThreadsBuffer), 1), 128);
-        public static int timeoutMS = Math.Min(Math.Max(int.Parse(RimThreadedMod.Settings.timeoutMSBuffer), 5000), 1000000);
+
+        public static int timeoutMS =
+            Math.Min(Math.Max(int.Parse(RimThreadedMod.Settings.timeoutMSBuffer), 5000), 1000000);
+
         public static float timeSpeedNormal = float.Parse(RimThreadedMod.Settings.timeSpeedNormalBuffer);
         public static float timeSpeedFast = float.Parse(RimThreadedMod.Settings.timeSpeedFastBuffer);
         public static float timeSpeedSuperfast = float.Parse(RimThreadedMod.Settings.timeSpeedSuperfastBuffer);
@@ -32,8 +36,11 @@ namespace RimThreaded
         private static readonly Thread monitorThread;
         private static bool allWorkerThreadsFinished;
 
-        public static ConcurrentQueue<Tuple<SoundDef, SoundInfo>> PlayOneShot = new ConcurrentQueue<Tuple<SoundDef, SoundInfo>>();
-        public static ConcurrentQueue<Tuple<SoundDef, Map>> PlayOneShotCamera = new ConcurrentQueue<Tuple<SoundDef, Map>>();
+        public static ConcurrentQueue<Tuple<SoundDef, SoundInfo>> PlayOneShot =
+            new ConcurrentQueue<Tuple<SoundDef, SoundInfo>>();
+
+        public static ConcurrentQueue<Tuple<SoundDef, Map>> PlayOneShotCamera =
+            new ConcurrentQueue<Tuple<SoundDef, Map>>();
 
         public static PlantHarvest_Cache plantHarvest_Cache = new PlantHarvest_Cache();
         public static PlantSowing_Cache plantSowing_Cache = new PlantSowing_Cache();
@@ -76,40 +83,8 @@ namespace RimThreaded
         public static HashSet<int> initializedThreads = new HashSet<int>();
 
         public static object allSustainersLock = new object();
-        //public static object map_AttackTargetReservationManager_reservations_Lock = new object();
 
-
-        public class ThreadInfo
-        {
-            public EventWaitHandle eventWaitStart = new AutoResetEvent(false);
-            public EventWaitHandle eventWaitDone = new AutoResetEvent(false);
-            public int timeoutExempt = 0;
-            public Thread thread;
-            public object[] safeFunctionRequest;
-            public object safeFunctionResult;
-        }
-        static RimThreaded()
-        {
-            RimThreadedHarmony rtHarmony = new RimThreadedHarmony();
-            InitializeAllThreadStatics();
-            CreateWorkerThreads();
-            monitorThread = new Thread(MonitorThreads) { IsBackground = true };
-            monitorThread.Start();
-        }
-
-        public static void AddNormalTicking(object instance, Action<object> prepare, Action<object> tick)
-        {
-            Log.Message("Loading TickList: " + instance.ToString());
-            threadedTickLists.Insert(2,
-            new ThreadedTickList
-            {
-                prepareAction = () => prepare(instance),
-                tickAction = () => tick(instance)
-            }
-            );
-        }
-
-        public static List<ThreadedTickList> threadedTickLists = new List<ThreadedTickList>()
+        public static List<ThreadedTickList> threadedTickLists = new List<ThreadedTickList>
         {
             new ThreadedTickList
             {
@@ -160,42 +135,68 @@ namespace RimThreaded
             {
                 prepareAction = TransportShipManager_Patch.ShipObjectsPrepare,
                 tickAction = TransportShipManager_Patch.ShipObjectsTick
-            },     
+            },
             new ThreadedTickList
             {
                 prepareAction = IdeoManager_Patch.IdeosPrepare,
                 tickAction = IdeoManager_Patch.IdeosTick
             }
         };
+
+        public static int frameCount;
+        public static TimeSpan halfTimeoutMS = new TimeSpan(0, 0, 0, 0, 4000);
+
+        static RimThreaded()
+        {
+            var rtHarmony = new RimThreadedHarmony();
+            InitializeAllThreadStatics();
+            CreateWorkerThreads();
+            monitorThread = new Thread(MonitorThreads) {IsBackground = true};
+            monitorThread.Start();
+        }
+
+        public static void AddNormalTicking(object instance, Action<object> prepare, Action<object> tick)
+        {
+            Log.Message("Loading TickList: " + instance);
+            threadedTickLists.Insert(2,
+                new ThreadedTickList
+                {
+                    prepareAction = () => prepare(instance),
+                    tickAction = () => tick(instance)
+                }
+            );
+        }
+
         public static void RestartAllWorkerThreads()
         {
-            foreach (Thread thread in allWorkerThreads.Keys.ToArray())
-            {
-                thread.Abort();
-            }
+            foreach (var thread in allWorkerThreads.Keys.ToArray()) thread.Abort();
             allWorkerThreads.Clear();
             CreateWorkerThreads();
         }
+
         private static void CreateWorkerThreads()
         {
             while (allWorkerThreads.Count < maxThreads)
             {
-                ThreadInfo threadInfo = CreateWorkerThread();
+                var threadInfo = CreateWorkerThread();
                 allWorkerThreads.Add(threadInfo.thread, threadInfo);
             }
         }
+
         private static ThreadInfo CreateWorkerThread()
         {
-            ThreadInfo threadInfo = new ThreadInfo { thread = new Thread(InitializeThread) { IsBackground = true } };
+            var threadInfo = new ThreadInfo {thread = new Thread(InitializeThread) {IsBackground = true}};
             threadInfo.thread.Start(threadInfo);
             return threadInfo;
         }
+
         private static void InitializeThread(object threadInfo)
         {
-            ThreadInfo ti = (ThreadInfo)threadInfo;
+            var ti = (ThreadInfo) threadInfo;
             InitializeAllThreadStatics();
             ProcessTicks(ti);
         }
+
         public static void InitializeAllThreadStatics()
         {
             CellFinder_Patch.InitializeThreadStatics();
@@ -225,25 +226,29 @@ namespace RimThreaded
             ReservationManager_Patch.InitializeThreadStatics();
             ListerThings_Patch.InitializeThreadStatics();
         }
+
         private static void ProcessTicks(ThreadInfo threadInfo)
         {
             while (true)
             {
                 threadInfo.eventWaitStart.WaitOne();
                 PrepareWorkLists();
-                for (int loopsCompleted = listsFullyProcessed; loopsCompleted < threadedTickLists.Count; loopsCompleted++)
+                for (var loopsCompleted = listsFullyProcessed;
+                     loopsCompleted < threadedTickLists.Count;
+                     loopsCompleted++)
                 {
                     threadedTickLists[loopsCompleted].prepEventWaitStart.WaitOne();
                     ExecuteTicks();
                 }
+
                 CompletePostWorkLists();
                 threadInfo.eventWaitDone.Set();
             }
         }
+
         private static void CompletePostWorkLists()
         {
             if (Interlocked.Increment(ref workingOnDateNotifierTick) == 0)
-            {
                 try
                 {
                     Find.DateNotifier.DateNotifierTick();
@@ -252,9 +257,8 @@ namespace RimThreaded
                 {
                     Log.Error(ex.ToString());
                 }
-            }
+
             if (Interlocked.Increment(ref workingOnHistoryTick) == 0)
-            {
                 try
                 {
                     Find.History.HistoryTick();
@@ -263,7 +267,7 @@ namespace RimThreaded
                 {
                     Log.Error(ex10.ToString());
                 }
-            }
+
             if (Interlocked.Increment(ref workingOnMiscellaneous) == 0)
             {
                 try
@@ -359,9 +363,10 @@ namespace RimThreaded
                 }
             }
         }
+
         private static void PrepareWorkLists()
         {
-            foreach (ThreadedTickList tickList in threadedTickLists)
+            foreach (var tickList in threadedTickLists)
             {
                 if (Interlocked.Increment(ref tickList.preparing) != 0) continue;
                 tickList.prepareAction();
@@ -372,7 +377,7 @@ namespace RimThreaded
 
         private static void ExecuteTicks()
         {
-            foreach (ThreadedTickList tickList in threadedTickLists)
+            foreach (var tickList in threadedTickLists)
             {
                 if (!tickList.readyToTick) continue;
                 tickList.tickAction();
@@ -389,11 +394,12 @@ namespace RimThreaded
             {
                 monitorThreadWaitHandle.WaitOne();
 
-                foreach (ThreadedTickList tickList in threadedTickLists)
+                foreach (var tickList in threadedTickLists)
                 {
                     tickList.preparing = -1;
                     tickList.threadCount = -1;
                 }
+                // Todo: impliment OneTickPools
                 //OneTickPools Ticks go here.
                 //OneTickPool<List<Thing>>.Tick(null);
                 //OneTickPool<List<Region>>.Tick(null);
@@ -410,14 +416,11 @@ namespace RimThreaded
                 mapPostTickComplete = false;
                 historyTickComplete = false;
                 miscellaneousComplete = false;
-                foreach (ThreadInfo threadInfo in allWorkerThreads.Values)
+                foreach (var threadInfo in allWorkerThreads.Values) threadInfo.eventWaitStart.Set();
+                var threadPairs = allWorkerThreads.ToList();
+                foreach (var threadPair in threadPairs)
                 {
-                    threadInfo.eventWaitStart.Set();
-                }
-                List<KeyValuePair<Thread, ThreadInfo>> threadPairs = allWorkerThreads.ToList();
-                foreach (KeyValuePair<Thread, ThreadInfo> threadPair in threadPairs)
-                {
-                    ThreadInfo threadInfo = threadPair.Value;
+                    var threadInfo = threadPair.Value;
                     if (!threadInfo.eventWaitDone.WaitOne(timeoutMS))
                     {
                         if (threadInfo.timeoutExempt == 0)
@@ -427,13 +430,12 @@ namespace RimThreaded
                         else
                         {
                             if (!threadInfo.eventWaitDone.WaitOne(threadInfo.timeoutExempt))
-                            {
                                 AbortThread(threadInfo, threadPair.Key);
-                            }
                             threadInfo.timeoutExempt = 0;
                         }
                     }
                 }
+
                 allWorkerThreadsFinished = true;
                 mainThreadWaitHandle.Set();
             }
@@ -441,14 +443,12 @@ namespace RimThreaded
 
         public static void AbortThread(ThreadInfo threadInfo, Thread thread)
         {
-            Log.Error("Thread: " + threadInfo.thread + " did not finish within " + timeoutMS + "ms. Restarting thread...");
+            Log.Error("Thread: " + threadInfo.thread + " did not finish within " + timeoutMS +
+                      "ms. Restarting thread...");
             thread.Abort();
             allWorkerThreads.Remove(thread);
             CreateWorkerThread();
         }
-
-        public static int frameCount = 0;
-        public static TimeSpan halfTimeoutMS = new TimeSpan(0,0,0,0,4000);
 
         public static void MainThreadWaitLoop(TickManager tickManager)
         {
@@ -468,28 +468,20 @@ namespace RimThreaded
         private static void MainPlayOneShot()
         {
             while (PlayOneShot.Count > 0)
-            {
-                if (PlayOneShot.TryDequeue(out Tuple<SoundDef, SoundInfo> s))
-                {
+                if (PlayOneShot.TryDequeue(out var s))
                     s.Item1.PlayOneShot(s.Item2);
-                }
-            }
             while (PlayOneShotCamera.Count > 0)
-            {
-                if (PlayOneShotCamera.TryDequeue(out Tuple<SoundDef, Map> s))
-                {
+                if (PlayOneShotCamera.TryDequeue(out var s))
                     s.Item1.PlayOneShotOnCamera(s.Item2);
-                }
-            }
         }
 
         private static void RespondToSafeFunctionRequests()
         {
-            foreach (ThreadInfo threadInfo in allWorkerThreads.Values)
+            foreach (var threadInfo in allWorkerThreads.Values)
             {
-                object[] functionAndParameters = threadInfo.safeFunctionRequest;
+                var functionAndParameters = threadInfo.safeFunctionRequest;
                 if (functionAndParameters == null) continue;
-                object[] parameters = (object[])functionAndParameters[1];
+                var parameters = (object[]) functionAndParameters[1];
                 switch (functionAndParameters[0])
                 {
                     case Func<object[], object> safeFunction:
@@ -502,12 +494,20 @@ namespace RimThreaded
                         Log.Error("First parameter of thread-safe function request was not an action or function");
                         break;
                 }
+
                 threadInfo.safeFunctionRequest = null;
                 threadInfo.eventWaitStart.Set();
             }
         }
 
-
+        public class ThreadInfo
+        {
+            public EventWaitHandle eventWaitDone = new AutoResetEvent(false);
+            public EventWaitHandle eventWaitStart = new AutoResetEvent(false);
+            public object[] safeFunctionRequest;
+            public object safeFunctionResult;
+            public Thread thread;
+            public int timeoutExempt;
+        }
     }
-
 }

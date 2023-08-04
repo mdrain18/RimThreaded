@@ -1,36 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using RimWorld;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class Alert_MinorBreakRisk_Patch
+    internal class Alert_MinorBreakRisk_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(Alert_MinorBreakRisk);
-            Type patched = typeof(Alert_MinorBreakRisk_Patch);
+            var original = typeof(Alert_MinorBreakRisk);
+            var patched = typeof(Alert_MinorBreakRisk_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(GetReport));
         }
+
         public static bool GetReport(Alert_MinorBreakRisk __instance, ref AlertReport __result)
         {
-            List<Pawn> pawnsAtRiskMinorResult = new List<Pawn>();
-            List<Pawn> pawnList = PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_FreeColonists_NoCryptosleep;
-            for (int i = 0; i < pawnList.Count; i++)
+            var pawnsAtRiskMinorResult = new List<Pawn>();
+            var pawnList = PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_FreeColonists_NoCryptosleep;
+            for (var i = 0; i < pawnList.Count; i++)
             {
-                Pawn item = pawnList[i];
+                var item = pawnList[i];
                 if (item.Downed || item.MentalStateDef != null) continue;
-                float curMood = item.mindState.mentalBreaker.CurMood;
-                if (curMood < item.mindState.mentalBreaker.BreakThresholdMajor)
-                {
-                    return false;
-                }
-                if (curMood < item.mindState.mentalBreaker.BreakThresholdMinor)
-                {
-                    pawnsAtRiskMinorResult.Add(item);
-                }
+                var curMood = item.mindState.mentalBreaker.CurMood;
+                if (curMood < item.mindState.mentalBreaker.BreakThresholdMajor) return false;
+                if (curMood < item.mindState.mentalBreaker.BreakThresholdMinor) pawnsAtRiskMinorResult.Add(item);
             }
+
             __result = AlertReport.CulpritsAre(pawnsAtRiskMinorResult);
             return false;
         }

@@ -1,18 +1,17 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using Verse;
 using Verse.Sound;
 
 namespace RimThreaded.RW_Patches
 {
-    class Messages_Patch
+    internal class Messages_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Messages);
-            Type patched = typeof(Messages_Patch);
+            var original = typeof(Messages);
+            var patched = typeof(Messages_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(Update));
-            RimThreadedHarmony.Prefix(original, patched, nameof(Message), new Type[] { typeof(Message), typeof(bool) });
+            RimThreadedHarmony.Prefix(original, patched, nameof(Message), new[] {typeof(Message), typeof(bool)});
             RimThreadedHarmony.Prefix(original, patched, nameof(MessagesDoGUI));
             RimThreadedHarmony.Prefix(original, patched, nameof(CollidesWithAnyMessage));
             RimThreadedHarmony.Prefix(original, patched, nameof(Clear));
@@ -20,17 +19,21 @@ namespace RimThreaded.RW_Patches
             RimThreadedHarmony.Prefix(original, patched, nameof(AcceptsMessage));
             RimThreadedHarmony.Prefix(original, patched, nameof(Notify_Mouseover));
         }
+
         public static bool Update()
         {
             lock (Messages.liveMessages)
             {
-                if (Current.ProgramState == ProgramState.Playing && Messages.mouseoverMessageIndex >= 0 && Messages.mouseoverMessageIndex < Messages.liveMessages.Count)
+                if (Current.ProgramState == ProgramState.Playing && Messages.mouseoverMessageIndex >= 0 &&
+                    Messages.mouseoverMessageIndex < Messages.liveMessages.Count)
                     Messages.liveMessages[Messages.mouseoverMessageIndex].lookTargets.TryHighlight();
                 Messages.mouseoverMessageIndex = -1;
                 Messages.liveMessages.RemoveAll(m => m.Expired);
             }
+
             return false;
         }
+
         public static bool Message(Message msg, bool historical = true)
         {
             lock (Messages.liveMessages)
@@ -46,34 +49,38 @@ namespace RimThreaded.RW_Patches
                     return false;
                 msg.def.sound.PlayOneShotOnCamera();
             }
+
             return false;
         }
+
         public static bool MessagesDoGUI()
         {
             Text.Font = GameFont.Small;
-            int x = (int)Messages.MessagesTopLeftStandard.x;
-            int y = (int)Messages.MessagesTopLeftStandard.y;
+            var x = (int) Messages.MessagesTopLeftStandard.x;
+            var y = (int) Messages.MessagesTopLeftStandard.y;
             if (Current.Game != null && Find.ActiveLesson.ActiveLessonVisible)
-                y += (int)Find.ActiveLesson.Current.MessagesYOffset;
+                y += (int) Find.ActiveLesson.Current.MessagesYOffset;
             lock (Messages.liveMessages)
             {
-                for (int index = Messages.liveMessages.Count - 1; index >= 0; --index)
+                for (var index = Messages.liveMessages.Count - 1; index >= 0; --index)
                 {
                     Messages.liveMessages[index].Draw(x, y);
                     y += 26;
                 }
             }
+
             return false;
         }
+
         public static bool CollidesWithAnyMessage(ref bool __result, Rect rect, out float messageAlpha)
         {
-            bool flag = false;
-            float a = 0.0f;
+            var flag = false;
+            var a = 0.0f;
             lock (Messages.liveMessages)
             {
-                for (int index = 0; index < Messages.liveMessages.Count; ++index)
+                for (var index = 0; index < Messages.liveMessages.Count; ++index)
                 {
-                    Message liveMessage = Messages.liveMessages[index];
+                    var liveMessage = Messages.liveMessages[index];
                     if (rect.Overlaps(liveMessage.lastDrawRect))
                     {
                         flag = true;
@@ -81,24 +88,29 @@ namespace RimThreaded.RW_Patches
                     }
                 }
             }
+
             messageAlpha = a;
             return flag;
         }
+
         public static bool Clear()
         {
             lock (Messages.liveMessages)
             {
                 Messages.liveMessages.Clear();
             }
+
             return false;
         }
+
         public static bool Notify_LoadedLevelChanged()
         {
             lock (Messages.liveMessages)
             {
-                for (int index = 0; index < Messages.liveMessages.Count; ++index)
+                for (var index = 0; index < Messages.liveMessages.Count; ++index)
                     Messages.liveMessages[index].lookTargets = null;
             }
+
             return false;
         }
 
@@ -109,17 +121,19 @@ namespace RimThreaded.RW_Patches
                 __result = false;
                 return false;
             }
+
             lock (Messages.liveMessages)
             {
-                for (int index = 0; index < Messages.liveMessages.Count; ++index)
-                {
-                    if (Messages.liveMessages[index].text == text && Messages.liveMessages[index].startingFrame == RealTime.frameCount && LookTargets.SameTargets(Messages.liveMessages[index].lookTargets, lookTargets))
+                for (var index = 0; index < Messages.liveMessages.Count; ++index)
+                    if (Messages.liveMessages[index].text == text &&
+                        Messages.liveMessages[index].startingFrame == RealTime.frameCount &&
+                        LookTargets.SameTargets(Messages.liveMessages[index].lookTargets, lookTargets))
                     {
                         __result = false;
                         return false;
                     }
-                }
             }
+
             __result = true;
             return false;
         }
@@ -130,8 +144,8 @@ namespace RimThreaded.RW_Patches
             {
                 Messages.mouseoverMessageIndex = Messages.liveMessages.IndexOf(msg);
             }
+
             return false;
         }
     }
-
 }

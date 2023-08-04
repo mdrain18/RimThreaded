@@ -1,46 +1,49 @@
 ﻿using RimWorld;
-using System;
-using UnityEngine;
 using Verse;
 using static RimThreaded.RimThreaded;
 using static System.Threading.Thread;
 
 namespace RimThreaded.RW_Patches
 {
-    class ApparelGraphicRecordGetter_Patch
+    internal class ApparelGraphicRecordGetter_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(ApparelGraphicRecordGetter);
-            Type patched = typeof(ApparelGraphicRecordGetter_Patch);
+            var original = typeof(ApparelGraphicRecordGetter);
+            var patched = typeof(ApparelGraphicRecordGetter_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(TryGetGraphicApparel));
         }
 
-        public static bool TryGetGraphicApparel(ref bool __result, Apparel apparel, BodyTypeDef bodyType, ref ApparelGraphicRecord rec)
+        public static bool TryGetGraphicApparel(ref bool __result, Apparel apparel, BodyTypeDef bodyType,
+            ref ApparelGraphicRecord rec)
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
-            {
-                return true;
-            }
+            if (!CurrentThread.IsBackground ||
+                !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo)) return true;
 
             if (bodyType == null)
             {
                 Log.Error("Getting apparel graphic with undefined body type.");
                 bodyType = BodyTypeDefOf.Male;
             }
+
             if (apparel.WornGraphicPath.NullOrEmpty())
             {
                 rec = new ApparelGraphicRecord(null, null);
                 __result = false;
                 return false;
             }
-            string path = apparel.def.apparel.LastLayer != ApparelLayerDefOf.Overhead && apparel.def.apparel.LastLayer != ApparelLayerDefOf.EyeCover && !PawnRenderer.RenderAsPack(apparel) && !(apparel.WornGraphicPath == BaseContent.PlaceholderImagePath) && !(apparel.WornGraphicPath == BaseContent.PlaceholderGearImagePath) ? apparel.WornGraphicPath + "_" + bodyType.defName : apparel.WornGraphicPath;
-            Shader shader = ShaderDatabase.Cutout;
-            if (apparel.def.apparel.useWornGraphicMask)
-            {
-                shader = ShaderDatabase.CutoutComplex;
-            }
-            Graphic graphic = GraphicDatabase.Get<Graphic_Multi>(path, shader, apparel.def.graphicData.drawSize, apparel.DrawColor);
+
+            var path = apparel.def.apparel.LastLayer != ApparelLayerDefOf.Overhead &&
+                       apparel.def.apparel.LastLayer != ApparelLayerDefOf.EyeCover &&
+                       !PawnRenderer.RenderAsPack(apparel) &&
+                       !(apparel.WornGraphicPath == BaseContent.PlaceholderImagePath) &&
+                       !(apparel.WornGraphicPath == BaseContent.PlaceholderGearImagePath)
+                ? apparel.WornGraphicPath + "_" + bodyType.defName
+                : apparel.WornGraphicPath;
+            var shader = ShaderDatabase.Cutout;
+            if (apparel.def.apparel.useWornGraphicMask) shader = ShaderDatabase.CutoutComplex;
+            var graphic =
+                GraphicDatabase.Get<Graphic_Multi>(path, shader, apparel.def.graphicData.drawSize, apparel.DrawColor);
             rec = new ApparelGraphicRecord(graphic, apparel);
             __result = true;
             return false;
@@ -58,6 +61,5 @@ namespace RimThreaded.RW_Patches
             return false;
             */
         }
-
     }
 }

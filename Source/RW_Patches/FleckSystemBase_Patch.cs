@@ -1,19 +1,26 @@
 ﻿using System;
-using System.Threading;
-using Verse;
-using UnityEngine;
 using System.Collections.Generic;
+using System.Threading;
+using UnityEngine;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class FleckSystemBase_Patch
+    internal class FleckSystemBase_Patch
     {
+        public static ReaderWriterLockSlim FleckStaticLockRT = new ReaderWriterLockSlim();
+        public static ReaderWriterLockSlim FleckThrownLockRT = new ReaderWriterLockSlim();
+        public static ReaderWriterLockSlim FleckSplashLockRT = new ReaderWriterLockSlim();
+        public static ReaderWriterLockSlim FleckStaticLockGT = new ReaderWriterLockSlim();
+        public static ReaderWriterLockSlim FleckThrownLockGT = new ReaderWriterLockSlim();
+        public static ReaderWriterLockSlim FleckSplashLockGT = new ReaderWriterLockSlim();
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(FleckSystemBase<FleckStatic>);
-            Type originalFT = typeof(FleckSystemBase<FleckThrown>);
-            Type originalFSplash = typeof(FleckSystemBase<FleckSplash>);
-            Type patched = typeof(FleckSystemBase_Patch);
+            var original = typeof(FleckSystemBase<FleckStatic>);
+            var originalFT = typeof(FleckSystemBase<FleckThrown>);
+            var originalFSplash = typeof(FleckSystemBase<FleckSplash>);
+            var patched = typeof(FleckSystemBase_Patch);
 
             RimThreadedHarmony.Prefix(original, patched, nameof(Tick));
             RimThreadedHarmony.Prefix(originalFT, patched, "Tick", PatchMethod: nameof(TickFT));
@@ -31,12 +38,6 @@ namespace RimThreaded.RW_Patches
             RimThreadedHarmony.Prefix(originalFT, patched, "Update", PatchMethod: nameof(UpdateFT));
             RimThreadedHarmony.Prefix(originalFSplash, patched, "Update", PatchMethod: nameof(UpdateFSplash));
         }
-        public static ReaderWriterLockSlim FleckStaticLockRT = new ReaderWriterLockSlim();
-        public static ReaderWriterLockSlim FleckThrownLockRT = new ReaderWriterLockSlim();
-        public static ReaderWriterLockSlim FleckSplashLockRT = new ReaderWriterLockSlim();
-        public static ReaderWriterLockSlim FleckStaticLockGT = new ReaderWriterLockSlim();
-        public static ReaderWriterLockSlim FleckThrownLockGT = new ReaderWriterLockSlim();
-        public static ReaderWriterLockSlim FleckSplashLockGT = new ReaderWriterLockSlim();
         /* tmpRemoveIndices also requires protection here. I wont make a lock for it but the PulsePool should provide enough protection */
 
         // FLECKSTATIC
@@ -45,18 +46,15 @@ namespace RimThreaded.RW_Patches
             FleckStaticLockGT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataGametime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataGametime.Count - 1; num >= 0; num--)
                 {
-                    FleckStatic value = __instance.dataGametime[num];
+                    var value = __instance.dataGametime[num];
                     if (value.TimeInterval(0.0166666675f, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataGametime[num] = value;
-                    }
                 }
+
                 __instance.dataGametime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -65,32 +63,24 @@ namespace RimThreaded.RW_Patches
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
             }
+
             return false;
         }
+
         public static bool Draw(FleckSystemBase<FleckStatic> __instance, DrawBatch drawBatch)
         {
-            foreach (FleckDef handledDef in __instance.handledDefs)
+            foreach (var handledDef in __instance.handledDefs)
             {
-                if (handledDef.graphicData != null)
-                {
-                    handledDef.graphicData.ExplicitlyInitCachedGraphic();
-                }
-                if (handledDef.randomGraphics == null)
-                {
-                    continue;
-                }
-                foreach (GraphicData randomGraphic in handledDef.randomGraphics)
-                {
-                    randomGraphic.ExplicitlyInitCachedGraphic();
-                }
+                if (handledDef.graphicData != null) handledDef.graphicData.ExplicitlyInitCachedGraphic();
+                if (handledDef.randomGraphics == null) continue;
+                foreach (var randomGraphic in handledDef.randomGraphics) randomGraphic.ExplicitlyInitCachedGraphic();
             }
+
             int parallelizationDegree;
             if (__instance.ParallelizedDrawing)
             {
                 if (__instance.CachedDrawParallelWaitCallback == null)
-                {
                     __instance.CachedDrawParallelWaitCallback = FleckSystemBase<FleckStatic>.DrawParallel;
-                }
                 parallelizationDegree = Environment.ProcessorCount;
                 FleckStaticLockRT.EnterReadLock();
                 try
@@ -101,6 +91,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckStaticLockRT.ExitReadLock();
                 }
+
                 FleckStaticLockGT.EnterReadLock();
                 try
                 {
@@ -122,6 +113,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckStaticLockRT.ExitReadLock();
                 }
+
                 FleckStaticLockGT.EnterReadLock();
                 try
                 {
@@ -132,24 +124,27 @@ namespace RimThreaded.RW_Patches
                     FleckStaticLockGT.ExitReadLock();
                 }
             }
+
             void Process(List<FleckStatic> data)
             {
                 if (data.Count > 0)
-                {
                     try
                     {
                         __instance.tmpParallelizationSlices.Clear();
-                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree, __instance.tmpParallelizationSlices);
-                        foreach (GenThreading.Slice tmpParallelizationSlice in __instance.tmpParallelizationSlices)
+                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree,
+                            __instance.tmpParallelizationSlices);
+                        foreach (var tmpParallelizationSlice in __instance.tmpParallelizationSlices)
                         {
-                            FleckParallelizationInfo parallelizationInfo = FleckUtility.GetParallelizationInfo();
+                            var parallelizationInfo = FleckUtility.GetParallelizationInfo();
                             parallelizationInfo.startIndex = tmpParallelizationSlice.fromInclusive;
                             parallelizationInfo.endIndex = tmpParallelizationSlice.toExclusive;
                             parallelizationInfo.data = data;
-                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback, parallelizationInfo);
+                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback,
+                                parallelizationInfo);
                             __instance.tmpParallelizationInfo.Add(parallelizationInfo);
                         }
-                        foreach (FleckParallelizationInfo item in __instance.tmpParallelizationInfo)
+
+                        foreach (var item in __instance.tmpParallelizationInfo)
                         {
                             item.doneEvent.WaitOne();
                             drawBatch.MergeWith(item.drawBatch);
@@ -157,40 +152,34 @@ namespace RimThreaded.RW_Patches
                     }
                     finally
                     {
-                        foreach (FleckParallelizationInfo item2 in __instance.tmpParallelizationInfo)
-                        {
+                        foreach (var item2 in __instance.tmpParallelizationInfo)
                             FleckUtility.ReturnParallelizationInfo(item2);
-                        }
                         __instance.tmpParallelizationInfo.Clear();
                     }
-                }
             }
+
             void Process2(List<FleckStatic> data)
             {
-                for (int num = data.Count - 1; num >= 0; num--)
-                {
-                    data[num].Draw(drawBatch);
-                }
+                for (var num = data.Count - 1; num >= 0; num--) data[num].Draw(drawBatch);
             }
+
             return false;
         }
+
         public static bool Update(FleckSystemBase<FleckStatic> __instance)
         {
             FleckStaticLockRT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataRealtime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataRealtime.Count - 1; num >= 0; num--)
                 {
-                    FleckStatic value = __instance.dataRealtime[num];
+                    var value = __instance.dataRealtime[num];
                     if (value.TimeInterval(Time.deltaTime, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataRealtime[num] = value;
-                    }
                 }
+
                 __instance.dataRealtime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -199,11 +188,13 @@ namespace RimThreaded.RW_Patches
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
             }
+
             return false;
         }
+
         public static bool CreateFleck(FleckSystemBase<FleckStatic> __instance, FleckCreationData creationData)
         {
-            FleckStatic fleck = new FleckStatic();//the pool baby?
+            var fleck = new FleckStatic(); //the pool baby?
             fleck.Setup(creationData);
             if (creationData.def.realTime)
             {
@@ -229,6 +220,7 @@ namespace RimThreaded.RW_Patches
                     FleckStaticLockGT.ExitWriteLock();
                 }
             }
+
             return false;
         }
 
@@ -238,18 +230,15 @@ namespace RimThreaded.RW_Patches
             FleckThrownLockGT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataGametime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataGametime.Count - 1; num >= 0; num--)
                 {
-                    FleckThrown value = __instance.dataGametime[num];
+                    var value = __instance.dataGametime[num];
                     if (value.TimeInterval(0.0166666675f, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataGametime[num] = value;
-                    }
                 }
+
                 __instance.dataGametime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -257,33 +246,26 @@ namespace RimThreaded.RW_Patches
                 FleckThrownLockGT.ExitWriteLock();
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
-            };
+            }
+
+            ;
             return false;
         }
+
         public static bool DrawFT(FleckSystemBase<FleckThrown> __instance, DrawBatch drawBatch)
         {
-            foreach (FleckDef handledDef in __instance.handledDefs)
+            foreach (var handledDef in __instance.handledDefs)
             {
-                if (handledDef.graphicData != null)
-                {
-                    handledDef.graphicData.ExplicitlyInitCachedGraphic();
-                }
-                if (handledDef.randomGraphics == null)
-                {
-                    continue;
-                }
-                foreach (GraphicData randomGraphic in handledDef.randomGraphics)
-                {
-                    randomGraphic.ExplicitlyInitCachedGraphic();
-                }
+                if (handledDef.graphicData != null) handledDef.graphicData.ExplicitlyInitCachedGraphic();
+                if (handledDef.randomGraphics == null) continue;
+                foreach (var randomGraphic in handledDef.randomGraphics) randomGraphic.ExplicitlyInitCachedGraphic();
             }
+
             int parallelizationDegree;
             if (__instance.ParallelizedDrawing)
             {
                 if (__instance.CachedDrawParallelWaitCallback == null)
-                {
                     __instance.CachedDrawParallelWaitCallback = FleckSystemBase<FleckThrown>.DrawParallel;
-                }
                 parallelizationDegree = Environment.ProcessorCount;
                 FleckThrownLockRT.EnterReadLock();
                 try
@@ -294,6 +276,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckThrownLockRT.ExitReadLock();
                 }
+
                 FleckThrownLockGT.EnterReadLock();
                 try
                 {
@@ -315,6 +298,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckThrownLockRT.ExitReadLock();
                 }
+
                 FleckThrownLockGT.EnterReadLock();
                 try
                 {
@@ -325,24 +309,27 @@ namespace RimThreaded.RW_Patches
                     FleckThrownLockGT.ExitReadLock();
                 }
             }
+
             void Process(List<FleckThrown> data)
             {
                 if (data.Count > 0)
-                {
                     try
                     {
                         __instance.tmpParallelizationSlices.Clear();
-                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree, __instance.tmpParallelizationSlices);
-                        foreach (GenThreading.Slice tmpParallelizationSlice in __instance.tmpParallelizationSlices)
+                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree,
+                            __instance.tmpParallelizationSlices);
+                        foreach (var tmpParallelizationSlice in __instance.tmpParallelizationSlices)
                         {
-                            FleckParallelizationInfo parallelizationInfo = FleckUtility.GetParallelizationInfo();
+                            var parallelizationInfo = FleckUtility.GetParallelizationInfo();
                             parallelizationInfo.startIndex = tmpParallelizationSlice.fromInclusive;
                             parallelizationInfo.endIndex = tmpParallelizationSlice.toExclusive;
                             parallelizationInfo.data = data;
-                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback, parallelizationInfo);
+                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback,
+                                parallelizationInfo);
                             __instance.tmpParallelizationInfo.Add(parallelizationInfo);
                         }
-                        foreach (FleckParallelizationInfo item in __instance.tmpParallelizationInfo)
+
+                        foreach (var item in __instance.tmpParallelizationInfo)
                         {
                             item.doneEvent.WaitOne();
                             drawBatch.MergeWith(item.drawBatch);
@@ -350,40 +337,34 @@ namespace RimThreaded.RW_Patches
                     }
                     finally
                     {
-                        foreach (FleckParallelizationInfo item2 in __instance.tmpParallelizationInfo)
-                        {
+                        foreach (var item2 in __instance.tmpParallelizationInfo)
                             FleckUtility.ReturnParallelizationInfo(item2);
-                        }
                         __instance.tmpParallelizationInfo.Clear();
                     }
-                }
             }
+
             void Process2(List<FleckThrown> data)
             {
-                for (int num = data.Count - 1; num >= 0; num--)
-                {
-                    data[num].Draw(drawBatch);
-                }
+                for (var num = data.Count - 1; num >= 0; num--) data[num].Draw(drawBatch);
             }
+
             return false;
         }
+
         public static bool UpdateFT(FleckSystemBase<FleckThrown> __instance)
         {
             FleckThrownLockRT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataRealtime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataRealtime.Count - 1; num >= 0; num--)
                 {
-                    FleckThrown value = __instance.dataRealtime[num];
+                    var value = __instance.dataRealtime[num];
                     if (value.TimeInterval(Time.deltaTime, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataRealtime[num] = value;
-                    }
                 }
+
                 __instance.dataRealtime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -393,11 +374,13 @@ namespace RimThreaded.RW_Patches
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
             }
+
             return false;
         }
+
         public static bool CreateFleckFT(FleckSystemBase<FleckThrown> __instance, FleckCreationData creationData)
         {
-            FleckThrown fleck = new FleckThrown();
+            var fleck = new FleckThrown();
             fleck.Setup(creationData);
             if (creationData.def.realTime)
             {
@@ -423,6 +406,7 @@ namespace RimThreaded.RW_Patches
                     FleckThrownLockGT.ExitWriteLock();
                 }
             }
+
             return false;
         }
 
@@ -432,18 +416,15 @@ namespace RimThreaded.RW_Patches
             FleckSplashLockGT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataGametime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataGametime.Count - 1; num >= 0; num--)
                 {
-                    FleckSplash value = __instance.dataGametime[num];
+                    var value = __instance.dataGametime[num];
                     if (value.TimeInterval(0.0166666675f, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataGametime[num] = value;
-                    }
                 }
+
                 __instance.dataGametime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -452,32 +433,24 @@ namespace RimThreaded.RW_Patches
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
             }
+
             return false;
         }
+
         public static bool DrawFSplash(FleckSystemBase<FleckSplash> __instance, DrawBatch drawBatch)
         {
-            foreach (FleckDef handledDef in __instance.handledDefs)
+            foreach (var handledDef in __instance.handledDefs)
             {
-                if (handledDef.graphicData != null)
-                {
-                    handledDef.graphicData.ExplicitlyInitCachedGraphic();
-                }
-                if (handledDef.randomGraphics == null)
-                {
-                    continue;
-                }
-                foreach (GraphicData randomGraphic in handledDef.randomGraphics)
-                {
-                    randomGraphic.ExplicitlyInitCachedGraphic();
-                }
+                if (handledDef.graphicData != null) handledDef.graphicData.ExplicitlyInitCachedGraphic();
+                if (handledDef.randomGraphics == null) continue;
+                foreach (var randomGraphic in handledDef.randomGraphics) randomGraphic.ExplicitlyInitCachedGraphic();
             }
+
             int parallelizationDegree;
             if (__instance.ParallelizedDrawing)
             {
                 if (__instance.CachedDrawParallelWaitCallback == null)
-                {
                     __instance.CachedDrawParallelWaitCallback = FleckSystemBase<FleckSplash>.DrawParallel;
-                }
                 parallelizationDegree = Environment.ProcessorCount;
                 FleckSplashLockRT.EnterReadLock();
                 try
@@ -488,6 +461,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckSplashLockRT.ExitReadLock();
                 }
+
                 FleckSplashLockGT.EnterReadLock();
                 try
                 {
@@ -509,6 +483,7 @@ namespace RimThreaded.RW_Patches
                 {
                     FleckSplashLockRT.ExitReadLock();
                 }
+
                 FleckSplashLockGT.EnterReadLock();
                 try
                 {
@@ -519,24 +494,27 @@ namespace RimThreaded.RW_Patches
                     FleckSplashLockGT.ExitReadLock();
                 }
             }
+
             void Process(List<FleckSplash> data)
             {
                 if (data.Count > 0)
-                {
                     try
                     {
                         __instance.tmpParallelizationSlices.Clear();
-                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree, __instance.tmpParallelizationSlices);
-                        foreach (GenThreading.Slice tmpParallelizationSlice in __instance.tmpParallelizationSlices)
+                        GenThreading.SliceWorkNoAlloc(0, data.Count, parallelizationDegree,
+                            __instance.tmpParallelizationSlices);
+                        foreach (var tmpParallelizationSlice in __instance.tmpParallelizationSlices)
                         {
-                            FleckParallelizationInfo parallelizationInfo = FleckUtility.GetParallelizationInfo();
+                            var parallelizationInfo = FleckUtility.GetParallelizationInfo();
                             parallelizationInfo.startIndex = tmpParallelizationSlice.fromInclusive;
                             parallelizationInfo.endIndex = tmpParallelizationSlice.toExclusive;
                             parallelizationInfo.data = data;
-                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback, parallelizationInfo);
+                            ThreadPool.QueueUserWorkItem(__instance.CachedDrawParallelWaitCallback,
+                                parallelizationInfo);
                             __instance.tmpParallelizationInfo.Add(parallelizationInfo);
                         }
-                        foreach (FleckParallelizationInfo item in __instance.tmpParallelizationInfo)
+
+                        foreach (var item in __instance.tmpParallelizationInfo)
                         {
                             item.doneEvent.WaitOne();
                             drawBatch.MergeWith(item.drawBatch);
@@ -544,40 +522,34 @@ namespace RimThreaded.RW_Patches
                     }
                     finally
                     {
-                        foreach (FleckParallelizationInfo item2 in __instance.tmpParallelizationInfo)
-                        {
+                        foreach (var item2 in __instance.tmpParallelizationInfo)
                             FleckUtility.ReturnParallelizationInfo(item2);
-                        }
                         __instance.tmpParallelizationInfo.Clear();
                     }
-                }
             }
+
             void Process2(List<FleckSplash> data)
             {
-                for (int num = data.Count - 1; num >= 0; num--)
-                {
-                    data[num].Draw(drawBatch);
-                }
+                for (var num = data.Count - 1; num >= 0; num--) data[num].Draw(drawBatch);
             }
+
             return false;
         }
+
         public static bool UpdateFSplash(FleckSystemBase<FleckSplash> __instance)
         {
             FleckSplashLockRT.EnterWriteLock();
             try
             {
-                for (int num = __instance.dataRealtime.Count - 1; num >= 0; num--)
+                for (var num = __instance.dataRealtime.Count - 1; num >= 0; num--)
                 {
-                    FleckSplash value = __instance.dataRealtime[num];
+                    var value = __instance.dataRealtime[num];
                     if (value.TimeInterval(Time.deltaTime, __instance.parent.parent))
-                    {
                         __instance.tmpRemoveIndices.Add(num);
-                    }
                     else
-                    {
                         __instance.dataRealtime[num] = value;
-                    }
                 }
+
                 __instance.dataRealtime.RemoveBatchUnordered(__instance.tmpRemoveIndices);
             }
             finally
@@ -586,11 +558,13 @@ namespace RimThreaded.RW_Patches
                 __instance.tmpRemoveIndices = PulsePool<List<int>>.Pulse(__instance.tmpRemoveIndices);
                 __instance.tmpRemoveIndices.Clear();
             }
+
             return false;
         }
+
         public static bool CreateFleckFSplash(FleckSystemBase<FleckSplash> __instance, FleckCreationData creationData)
         {
-            FleckSplash fleck = new FleckSplash();
+            var fleck = new FleckSplash();
             fleck.Setup(creationData);
             if (creationData.def.realTime)
             {
@@ -616,6 +590,7 @@ namespace RimThreaded.RW_Patches
                     FleckSplashLockGT.ExitWriteLock();
                 }
             }
+
             return false;
         }
     }

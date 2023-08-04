@@ -1,28 +1,28 @@
 ﻿using RimWorld;
-using System;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class District_Patch
+    internal class District_Patch
     {
-
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(District);
-            Type patched = typeof(District_Patch);
+            var original = typeof(District);
+            var patched = typeof(District_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(RemoveRegion));
             RimThreadedHarmony.Prefix(original, patched, nameof(Notify_RoofChanged));
             RimThreadedHarmony.Prefix(original, patched, nameof(Notify_RoomShapeOrContainedBedsChanged));
             RimThreadedHarmony.Prefix(original, patched, nameof(OpenRoofCountStopAt));
         }
+
         public static bool RemoveRegion(District __instance, Region r)
         {
             lock (__instance) //added
             {
                 if (!__instance.regions.Contains(r))
                 {
-                    Log.Error("Tried to remove region from District but __instance region is not here. region=" + r + ", district=" + __instance);
+                    Log.Error("Tried to remove region from District but __instance region is not here. region=" + r +
+                              ", district=" + __instance);
                 }
                 else
                 {
@@ -37,6 +37,7 @@ namespace RimThreaded.RW_Patches
                     __instance.Map.regionGrid.allDistricts.Remove(__instance);
                 }
             }
+
             return false;
         }
 
@@ -48,6 +49,7 @@ namespace RimThreaded.RW_Patches
                 __instance.cachedOpenRoofState = null;
                 __instance.Room.Notify_RoofChanged();
             }
+
             return false;
         }
 
@@ -62,6 +64,7 @@ namespace RimThreaded.RW_Patches
                 __instance.lastChangeTick = Find.TickManager.TicksGame;
                 FacilitiesUtility.NotifyFacilitiesAboutChangedLOSBlockers(__instance.regions);
             }
+
             return false;
         }
 
@@ -74,21 +77,21 @@ namespace RimThreaded.RW_Patches
                     __instance.cachedOpenRoofCount = 0;
                     __instance.cachedOpenRoofState = __instance.Cells.GetEnumerator();
                 }
+
                 if (__instance.cachedOpenRoofCount < threshold && __instance.cachedOpenRoofState != null)
                 {
-                    RoofGrid roofGrid = __instance.Map.roofGrid;
+                    var roofGrid = __instance.Map.roofGrid;
                     while (__instance.cachedOpenRoofCount < threshold && __instance.cachedOpenRoofState.MoveNext())
-                    {
                         if (!roofGrid.Roofed(__instance.cachedOpenRoofState.Current))
                             ++__instance.cachedOpenRoofCount;
-                    }
                     if (__instance.cachedOpenRoofCount < threshold)
                         __instance.cachedOpenRoofState = null;
                 }
+
                 __result = __instance.cachedOpenRoofCount;
             }
+
             return false;
         }
-
     }
 }

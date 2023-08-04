@@ -1,25 +1,24 @@
-﻿using System;
-using RimWorld;
+﻿using RimWorld;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class RitualObligationTargetWorker_AnyEmptyGrave_Patch
+    internal class RitualObligationTargetWorker_AnyEmptyGrave_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(RitualObligationTargetWorker_AnyEmptyGrave);
-            Type patched = typeof(RitualObligationTargetWorker_AnyEmptyGrave_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(LabelExtraPart), new Type[] { typeof(RitualObligation) });
+            var original = typeof(RitualObligationTargetWorker_AnyEmptyGrave);
+            var patched = typeof(RitualObligationTargetWorker_AnyEmptyGrave_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(LabelExtraPart), new[] {typeof(RitualObligation)});
         }
-        public static bool LabelExtraPart(RitualObligationTargetWorker_AnyEmptyGrave __instance, ref string __result, RitualObligation obligation)
+
+        public static bool LabelExtraPart(RitualObligationTargetWorker_AnyEmptyGrave __instance, ref string __result,
+            RitualObligation obligation)
         {
             __result = string.Empty;
-            if (obligation == null || obligation.targetA == null || (Pawn)obligation.targetA.Thing == null)
-            {
+            if (obligation == null || obligation.targetA == null || (Pawn) obligation.targetA.Thing == null)
                 return false;
-            }
-            __result = ((Pawn)obligation.targetA.Thing).LabelShort;
+            __result = ((Pawn) obligation.targetA.Thing).LabelShort;
             return false;
         }
     }

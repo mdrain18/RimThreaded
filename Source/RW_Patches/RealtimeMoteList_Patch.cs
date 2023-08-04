@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class RealtimeMoteList_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(RealtimeMoteList);
-            Type patched = typeof(RealtimeMoteList_Patch);
+            var original = typeof(RealtimeMoteList);
+            var patched = typeof(RealtimeMoteList_Patch);
             RimThreadedHarmony.Prefix(original, patched, "Clear");
             RimThreadedHarmony.Prefix(original, patched, "MoteSpawned");
             RimThreadedHarmony.Prefix(original, patched, "MoteDespawned");
@@ -22,6 +20,7 @@ namespace RimThreaded.RW_Patches
             {
                 __instance.allMotes = new List<Mote>();
             }
+
             return false;
         }
 
@@ -31,6 +30,7 @@ namespace RimThreaded.RW_Patches
             {
                 __instance.allMotes.Add(newMote);
             }
+
             return false;
         }
 
@@ -38,14 +38,12 @@ namespace RimThreaded.RW_Patches
         {
             lock (__instance)
             {
-                List<Mote> newMotes = new List<Mote>(__instance.allMotes);
+                var newMotes = new List<Mote>(__instance.allMotes);
                 newMotes.Remove(oldMote);
                 __instance.allMotes = newMotes;
             }
+
             return false;
         }
-
-
     }
-
 }

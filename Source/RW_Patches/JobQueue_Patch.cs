@@ -5,14 +5,12 @@ using Verse.AI;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class JobQueue_Patch
     {
-
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(JobQueue);
-            Type patched = typeof(JobQueue_Patch);
+            var original = typeof(JobQueue);
+            var patched = typeof(JobQueue_Patch);
             RimThreadedHarmony.Prefix(original, patched, "AnyCanBeginNow");
             RimThreadedHarmony.Prefix(original, patched, "EnqueueFirst");
             RimThreadedHarmony.Prefix(original, patched, "EnqueueLast");
@@ -20,28 +18,32 @@ namespace RimThreaded.RW_Patches
             RimThreadedHarmony.Prefix(original, patched, "Extract");
             RimThreadedHarmony.Prefix(original, patched, "Dequeue");
         }
+
         public static bool AnyCanBeginNow(JobQueue __instance, ref bool __result, Pawn pawn, bool whileLyingDown)
         {
-            List<QueuedJob> j = __instance.jobs;
-            for (int i = 0; i < j.Count; i++)
+            var j = __instance.jobs;
+            for (var i = 0; i < j.Count; i++)
             {
-                QueuedJob queuedJob = j[i];
+                var queuedJob = j[i];
                 if (null == queuedJob) continue;
                 if (!queuedJob.job.CanBeginNow(pawn, whileLyingDown)) continue;
                 __result = true;
                 return false;
             }
+
             __result = false;
             return false;
         }
+
         public static bool EnqueueFirst(JobQueue __instance, Job j, JobTag? tag = null)
         {
             lock (__instance)
             {
-                List<QueuedJob> newJobs = new List<QueuedJob>(__instance.jobs);
+                var newJobs = new List<QueuedJob>(__instance.jobs);
                 newJobs.Insert(0, new QueuedJob(j, tag));
                 __instance.jobs = newJobs;
             }
+
             return false;
         }
 
@@ -51,13 +53,14 @@ namespace RimThreaded.RW_Patches
             {
                 __instance.jobs.Add(new QueuedJob(j, tag));
             }
+
             return false;
         }
 
         public static bool Contains(JobQueue __instance, ref bool __result, Job j)
         {
-            List<QueuedJob> snapshotJobs = __instance.jobs;
-            for (int i = 0; i < snapshotJobs.Count; i++)
+            var snapshotJobs = __instance.jobs;
+            for (var i = 0; i < snapshotJobs.Count; i++)
             {
                 QueuedJob jobi;
                 try
@@ -68,6 +71,7 @@ namespace RimThreaded.RW_Patches
                 {
                     break;
                 }
+
                 if (jobi.job == j)
                 {
                     __result = true;
@@ -82,15 +86,16 @@ namespace RimThreaded.RW_Patches
         {
             lock (__instance)
             {
-                int num = __instance.jobs.FindIndex((qj) => qj.job == j);
+                var num = __instance.jobs.FindIndex(qj => qj.job == j);
                 if (num >= 0)
                 {
-                    QueuedJob result = __instance.jobs[num];
+                    var result = __instance.jobs[num];
                     __instance.jobs.RemoveAt(num);
                     __result = result;
                     return false;
                 }
             }
+
             __result = null;
             return false;
         }
@@ -109,9 +114,9 @@ namespace RimThreaded.RW_Patches
                 result = __instance.jobs[0];
                 __instance.jobs.RemoveAt(0);
             }
+
             __result = result;
             return false;
         }
-
     }
 }

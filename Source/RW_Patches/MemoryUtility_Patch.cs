@@ -3,7 +3,7 @@ using Verse.Profile;
 
 namespace RimThreaded.RW_Patches
 {
-    class MemoryUtility_Patch
+    internal class MemoryUtility_Patch
     {
         private static readonly Type Original = typeof(MemoryUtility);
         private static readonly Type Patched = typeof(MemoryUtility_Patch);

@@ -11,7 +11,6 @@ using static HarmonyLib.AccessTools;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class CompSpawnSubplant_Transpile
     {
         //static Dictionary<CompSpawnSubplant, ThreadSafeLinkedList<Thing>> subplants;
@@ -25,18 +24,18 @@ namespace RimThreaded.RW_Patches
             //RimThreadedHarmony.harmony.Patch(Method(original, nameof(CompSpawnSubplant.DoGrowSubplant)), transpiler: new HarmonyMethod(Method(patched, nameof(ReplaceAdd_Thing))));
             //RimThreadedHarmony.harmony.Patch(Method(original, nameof(CompSpawnSubplant.Cleanup)), transpiler: new HarmonyMethod(Method(patched, nameof(ReplaceRemoveAll_Thing))));
             //RimThreadedHarmony.harmony.Patch(Method(original, nameof(CompSpawnSubplant.PostExposeData)), transpiler: new HarmonyMethod(Method(patched, nameof(ReplaceRemoveAll_Thing))));
-            
+
             //RimThreadedHarmony.harmony.Patch(Method(original, nameof(CompSpawnSubplant.PostExposeData)), transpiler: new HarmonyMethod(Method(patched, nameof(ReplaceLook_Thing)))); //1.4
         }
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(CompSpawnSubplant);
-            Type patched = typeof(CompSpawnSubplant_Transpile);
+            var original = typeof(CompSpawnSubplant);
+            var patched = typeof(CompSpawnSubplant_Transpile);
             RimThreadedHarmony.Prefix(original, patched, nameof(AddProgress));
             RimThreadedHarmony.Prefix(original, patched, nameof(TryGrowSubplants));
             //RimThreadedHarmony.Prefix(original, patched, nameof(get_SubplantsForReading));
             //RimThreadedHarmony.Prefix(original, patched, nameof(Cleanup));
-
         }
 
 
@@ -57,15 +56,16 @@ namespace RimThreaded.RW_Patches
             return false;
         }
         */
-        public static IEnumerable<CodeInstruction> ConvertListThing_ToList(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> ConvertListThing_ToList(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            foreach (CodeInstruction codeInstruction in instructions)
+            foreach (var codeInstruction in instructions)
             {
                 yield return codeInstruction;
-                if (codeInstruction.opcode == OpCodes.Ldfld && ((FieldInfo)codeInstruction.operand).FieldType == typeof(List<Thing>))
-                {
-                    yield return new CodeInstruction(OpCodes.Call, Method(typeof(ThreadSafeLinkedList<Thing>), nameof(ThreadSafeLinkedList<Thing>.ToList)));
-                }
+                if (codeInstruction.opcode == OpCodes.Ldfld &&
+                    ((FieldInfo) codeInstruction.operand).FieldType == typeof(List<Thing>))
+                    yield return new CodeInstruction(OpCodes.Call,
+                        Method(typeof(ThreadSafeLinkedList<Thing>), nameof(ThreadSafeLinkedList<Thing>.ToList)));
             }
         }
 
@@ -73,14 +73,14 @@ namespace RimThreaded.RW_Patches
         //private List<Thing> subplants = new List<Thing>();
         //WITH:
         //private List<Thing> subplants = new ThreadSafeLinkedList<Thing>();
-        public static IEnumerable<CodeInstruction> CreateNewThreadSafeLinkedList_Thing(IEnumerable<CodeInstruction> instructions, ILGenerator _)
+        public static IEnumerable<CodeInstruction> CreateNewThreadSafeLinkedList_Thing(
+            IEnumerable<CodeInstruction> instructions, ILGenerator _)
         {
-            foreach (CodeInstruction codeInstruction in instructions)
+            foreach (var codeInstruction in instructions)
             {
-                if (codeInstruction.opcode == OpCodes.Newobj && (ConstructorInfo)codeInstruction.operand == Constructor(typeof(List<Thing>), Type.EmptyTypes))
-                {
+                if (codeInstruction.opcode == OpCodes.Newobj && (ConstructorInfo) codeInstruction.operand ==
+                    Constructor(typeof(List<Thing>), Type.EmptyTypes))
                     codeInstruction.operand = Constructor(typeof(ThreadSafeLinkedList<Thing>));
-                }
                 yield return codeInstruction;
             }
         }
@@ -92,54 +92,62 @@ namespace RimThreaded.RW_Patches
         //}
         public static bool Cleanup(CompSpawnSubplant __instance)
         {
-            __instance.subplants.RemoveAll((Thing p) => !p.Spawned);
+            __instance.subplants.RemoveAll(p => !p.Spawned);
             return false;
         }
-        public static IEnumerable<CodeInstruction> ReplaceRemoveAll_Thing(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+
+        public static IEnumerable<CodeInstruction> ReplaceRemoveAll_Thing(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            foreach (CodeInstruction codeInstruction in instructions)
+            foreach (var codeInstruction in instructions)
             {
-                if (codeInstruction.opcode == OpCodes.Callvirt && (MethodInfo)codeInstruction.operand == Method(typeof(List<Thing>), nameof(List<Thing>.RemoveAll)))
-                {
-                    codeInstruction.operand = Method(typeof(ThreadSafeLinkedList<Thing>), nameof(ThreadSafeLinkedList<Thing>.RemoveAll));
-                }
+                if (codeInstruction.opcode == OpCodes.Callvirt && (MethodInfo) codeInstruction.operand ==
+                    Method(typeof(List<Thing>), nameof(List<Thing>.RemoveAll)))
+                    codeInstruction.operand = Method(typeof(ThreadSafeLinkedList<Thing>),
+                        nameof(ThreadSafeLinkedList<Thing>.RemoveAll));
                 yield return codeInstruction;
             }
         }
 
         //public void DoGrowSubplant()
         //subplants.Add(GenSpawn.Spawn(Props.subplant, intVec, parent.Map));   ------REPLACE WITH ThreadSafeLinkedList.Add(object)
-        public static IEnumerable<CodeInstruction> ReplaceAdd_Thing(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> ReplaceAdd_Thing(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            foreach (CodeInstruction codeInstruction in instructions)
+            foreach (var codeInstruction in instructions)
             {
-                if (codeInstruction.opcode == OpCodes.Callvirt && (MethodInfo)codeInstruction.operand == Method(typeof(List<Thing>), nameof(List<Thing>.Add)))
-                {
-                    codeInstruction.operand = Method(typeof(ThreadSafeLinkedList<Thing>), nameof(ThreadSafeLinkedList<Thing>.Add));
-                }
+                if (codeInstruction.opcode == OpCodes.Callvirt && (MethodInfo) codeInstruction.operand ==
+                    Method(typeof(List<Thing>), nameof(List<Thing>.Add)))
+                    codeInstruction.operand = Method(typeof(ThreadSafeLinkedList<Thing>),
+                        nameof(ThreadSafeLinkedList<Thing>.Add));
                 yield return codeInstruction;
             }
         }
 
         //public override void PostExposeData()
         //Scribe_Collections.Look(ref subplants, "subplants", LookMode.Reference);   ------Add Scribe_Collections.Look(ref ThreadSafeLinkedList, string, LookMode)
-        public static IEnumerable<CodeInstruction> ReplaceLook_Thing(IEnumerable<CodeInstruction> instructions, ILGenerator _)
+        public static IEnumerable<CodeInstruction> ReplaceLook_Thing(IEnumerable<CodeInstruction> instructions,
+            ILGenerator _)
         {
-            foreach (CodeInstruction codeInstruction in instructions)
+            foreach (var codeInstruction in instructions)
             {
-                if (codeInstruction.opcode == OpCodes.Call && (MethodInfo)codeInstruction.operand == Method(typeof(Scribe_Collections), "Look", new Type[] { typeof(List<>).MakeByRefType(), typeof(string), typeof(LookMode), typeof(object[]) }, new Type[] { typeof(Thing) }))
-                {
-                    codeInstruction.operand = Method(typeof(Scribe_Collections_Patch), "Look1", null, new Type[] { typeof(Thing) });
-                }
+                if (codeInstruction.opcode == OpCodes.Call && (MethodInfo) codeInstruction.operand ==
+                    Method(typeof(Scribe_Collections), "Look",
+                        new[] {typeof(List<>).MakeByRefType(), typeof(string), typeof(LookMode), typeof(object[])},
+                        new[] {typeof(Thing)}))
+                    codeInstruction.operand = Method(typeof(Scribe_Collections_Patch), "Look1", null,
+                        new[] {typeof(Thing)});
                 yield return codeInstruction;
             }
         }
+
         public static bool AddProgress(CompSpawnSubplant __instance, float progress, bool ignoreMultiplier = false)
         {
-            if (ModLister.CheckRoyalty("Subplant spawning")) { 
+            if (ModLister.CheckRoyalty("Subplant spawning"))
+            {
                 if (!ignoreMultiplier)
                     progress *= __instance.ProgressMultiplier;
-                progress *= (1f + __instance.parent.GetStatValue(StatDefOf.MeditationPlantGrowthOffset));
+                progress *= 1f + __instance.parent.GetStatValue(StatDefOf.MeditationPlantGrowthOffset);
                 lock (__instance) //threadsafe add for float
                 {
                     __instance.progressToNextSubplant += progress;
@@ -151,11 +159,12 @@ namespace RimThreaded.RW_Patches
 
             return false;
         }
+
         public static bool TryGrowSubplants(CompSpawnSubplant __instance)
         {
             while (__instance.progressToNextSubplant >= 1f)
             {
-                bool grow = false;
+                var grow = false;
                 lock (__instance) //threadsafe subrtract for float
                 {
                     if (__instance.progressToNextSubplant >= 1f)
@@ -164,11 +173,12 @@ namespace RimThreaded.RW_Patches
                         grow = true;
                     }
                 }
+
                 if (grow)
                     __instance.DoGrowSubplant();
             }
+
             return false;
         }
-
     }
 }

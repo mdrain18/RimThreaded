@@ -5,10 +5,11 @@ using static RimThreaded.RimThreadedHarmony;
 
 namespace RimThreaded.Mod_Patches
 {
-    class Hospitality_Patch
+    internal class Hospitality_Patch
     {
         public static Type hospitalityCompUtility;
         public static Type hospitalityCompGuest;
+
         public static void Patch()
         {
             hospitalityCompUtility = TypeByName("Hospitality.CompUtility");
@@ -17,7 +18,7 @@ namespace RimThreaded.Mod_Patches
             Type patched;
             if (hospitalityCompUtility != null)
             {
-                string methodName = "CompGuest";
+                var methodName = "CompGuest";
                 Log.Message("RimThreaded is patching " + hospitalityCompUtility.FullName + " " + methodName);
                 patched = typeof(CompUtility_Transpile);
                 Transpile(hospitalityCompUtility, patched, methodName);

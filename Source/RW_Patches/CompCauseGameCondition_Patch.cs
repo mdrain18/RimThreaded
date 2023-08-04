@@ -5,14 +5,14 @@ using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class CompCauseGameCondition_Patch
     {
         [ThreadStatic] public static List<Map> tmpDeadConditionMaps;
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(CompCauseGameCondition);
-            Type patched = typeof(CompCauseGameCondition_Patch);
+            var original = typeof(CompCauseGameCondition);
+            var patched = typeof(CompCauseGameCondition_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(GetConditionInstance));
             RimThreadedHarmony.Prefix(original, patched, nameof(CreateConditionOn));
             RimThreadedHarmony.Prefix(original, patched, nameof(CompTick));
@@ -25,7 +25,8 @@ namespace RimThreaded.RW_Patches
 
         public static bool GetConditionInstance(CompCauseGameCondition __instance, ref GameCondition __result, Map map)
         {
-            if (!__instance.causedConditions.TryGetValue(map, out GameCondition value) && __instance.Props.preventConditionStacking)
+            if (!__instance.causedConditions.TryGetValue(map, out var value) &&
+                __instance.Props.preventConditionStacking)
             {
                 value = map.GameConditionManager.GetActiveCondition(__instance.Props.conditionDef);
                 if (value != null)
@@ -34,6 +35,7 @@ namespace RimThreaded.RW_Patches
                     {
                         __instance.causedConditions.Add(map, value);
                     }
+
                     __instance.SetupCondition(value, map);
                 }
             }
@@ -41,9 +43,10 @@ namespace RimThreaded.RW_Patches
             __result = value;
             return false;
         }
+
         public static bool CreateConditionOn(CompCauseGameCondition __instance, ref GameCondition __result, Map map)
         {
-            GameCondition gameCondition = GameConditionMaker.MakeCondition(__instance.ConditionDef);
+            var gameCondition = GameConditionMaker.MakeCondition(__instance.ConditionDef);
             gameCondition.Duration = gameCondition.TransitionTicks;
             gameCondition.conditionCauser = __instance.parent;
             map.gameConditionManager.RegisterCondition(gameCondition);
@@ -51,6 +54,7 @@ namespace RimThreaded.RW_Patches
             {
                 __instance.causedConditions.Add(map, gameCondition);
             }
+
             __instance.SetupCondition(gameCondition, map);
             __result = gameCondition;
             return false;
@@ -59,38 +63,29 @@ namespace RimThreaded.RW_Patches
         public static bool CompTick(CompCauseGameCondition __instance)
         {
             if (__instance.Active)
-            {
-                foreach (Map map in Find.Maps)
-                {
+                foreach (var map in Find.Maps)
                     if (__instance.InAoE(map.Tile))
-                    {
                         __instance.EnforceConditionOn(map);
-                    }
-                }
-            }
             tmpDeadConditionMaps.Clear();
 
-            foreach (KeyValuePair<Map, GameCondition> causedCondition in __instance.causedConditions)
-            {
-                if (causedCondition.Value.Expired || !causedCondition.Key.GameConditionManager.ConditionIsActive(causedCondition.Value.def))
-                {
+            foreach (var causedCondition in __instance.causedConditions)
+                if (causedCondition.Value.Expired ||
+                    !causedCondition.Key.GameConditionManager.ConditionIsActive(causedCondition.Value.def))
                     tmpDeadConditionMaps.Add(causedCondition.Key);
-                }
-            }
 
-            foreach (Map tmpDeadConditionMap in tmpDeadConditionMaps)
+            foreach (var tmpDeadConditionMap in tmpDeadConditionMaps)
             {
                 if (!__instance.causedConditions.ContainsKey(tmpDeadConditionMap)) continue;
                 lock (__instance)
                 {
                     if (!__instance.causedConditions.ContainsKey(tmpDeadConditionMap)) continue;
-                    Dictionary<Map, GameCondition> newCausedConditions = new Dictionary<Map, GameCondition>(__instance.causedConditions);
+                    var newCausedConditions = new Dictionary<Map, GameCondition>(__instance.causedConditions);
                     newCausedConditions.Remove(tmpDeadConditionMap);
                     __instance.causedConditions = newCausedConditions;
                 }
             }
+
             return false;
         }
-
     }
 }

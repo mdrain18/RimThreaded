@@ -1,30 +1,29 @@
-﻿using RimWorld;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using RimWorld;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class Map_Patch
+    internal class Map_Patch
     {
-
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Map);
-            Type patched = typeof(Map_Patch);
+            var original = typeof(Map);
+            var patched = typeof(Map_Patch);
             RimThreadedHarmony.Prefix(original, patched, "get_IsPlayerHome");
         }
 
         public static bool get_IsPlayerHome(Map __instance, ref bool __result)
         {
-            if (__instance.info != null && __instance.info.parent != null && __instance.info.parent.def != null && __instance.info.parent.def.canBePlayerHome)
+            if (__instance.info != null && __instance.info.parent != null && __instance.info.parent.def != null &&
+                __instance.info.parent.def.canBePlayerHome)
             {
                 __result = __instance.info.parent.Faction == Faction.OfPlayer;
                 return false;
             }
+
             __result = false;
             return false;
-
         }
 
         public static void MapsPostTickPrepare()
@@ -40,10 +39,10 @@ namespace RimThreaded.RW_Patches
             TradeShip_Patch.totalTradeShipsCount = 0;
             try
             {
-                List<Map> maps = Find.Maps;
-                for (int j = 0; j < maps.Count; j++)
+                var maps = Find.Maps;
+                for (var j = 0; j < maps.Count; j++)
                 {
-                    Map map = maps[j];
+                    var map = maps[j];
                     map.MapPostTick();
                 }
             }
@@ -51,7 +50,6 @@ namespace RimThreaded.RW_Patches
             {
                 Log.Error(ex3.ToString());
             }
-
         }
 
         public static void MapPostListTick()

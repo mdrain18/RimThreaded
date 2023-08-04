@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using RimWorld;
 using Verse;
 using static HarmonyLib.AccessTools;
 
@@ -10,20 +11,19 @@ namespace RimThreaded.Mod_Patches
 {
     public class Verb_MeleeAttackCE_Transpile
     {
-        
-        public static void PreApplyMeleeSlaveSuppression(DamageWorker.DamageResult damageResult, Pawn pawn, RimWorld.Verb_MeleeAttack verb_MeleeAttack)
+        public static void PreApplyMeleeSlaveSuppression(DamageWorker.DamageResult damageResult, Pawn pawn,
+            Verb_MeleeAttack verb_MeleeAttack)
         {
             if (pawn != null && damageResult.totalDamageDealt > 0f)
-            {
                 verb_MeleeAttack.ApplyMeleeSlaveSuppression(pawn, damageResult.totalDamageDealt);
-            }
         }
 
-        public static IEnumerable<CodeInstruction> TryCastShot(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> TryCastShot(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            bool matchFound = false;
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var matchFound = false;
             /*
              * ldloc.1      // thing
              * brfalse labelThingIsNull
@@ -36,30 +36,33 @@ namespace RimThreaded.Mod_Patches
             */
             while (i < instructionsList.Count)
             {
-                CodeInstruction ci = instructionsList[i];
-                if(ci.opcode == OpCodes.Callvirt && (MethodInfo)ci.operand == Method(typeof(RimWorld.Verb_MeleeAttack), nameof(RimWorld.Verb_MeleeAttack.ApplyMeleeDamageToTarget))) {
+                var ci = instructionsList[i];
+                if (ci.opcode == OpCodes.Callvirt && (MethodInfo) ci.operand == Method(typeof(Verb_MeleeAttack),
+                        nameof(Verb_MeleeAttack.ApplyMeleeDamageToTarget)))
+                {
                     yield return ci;
                     yield return new CodeInstruction(OpCodes.Dup);
 
-                    i++; 
+                    i++;
                     yield return instructionsList[i]; // ldloc.s 20
-                    i++; 
+                    i++;
                     yield return instructionsList[i]; // AssociateWithLog
 
                     yield return new CodeInstruction(OpCodes.Ldloc_S, 6); // load pawn target
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);    // verb_MeleeAttack (this)
-                    yield return new CodeInstruction(OpCodes.Call, Method(typeof(Verb_MeleeAttackCE_Transpile), nameof(PreApplyMeleeSlaveSuppression)));
+                    yield return new CodeInstruction(OpCodes.Ldarg_0); // verb_MeleeAttack (this)
+                    yield return new CodeInstruction(OpCodes.Call,
+                        Method(typeof(Verb_MeleeAttackCE_Transpile), nameof(PreApplyMeleeSlaveSuppression)));
                 }
                 else if (i + 3 < instructionsList.Count &&
-                    instructionsList[i + 3].opcode == OpCodes.Callvirt &&
-                    (MethodInfo)instructionsList[i + 3].operand == Method(typeof(Thing), "get_Position"))
+                         instructionsList[i + 3].opcode == OpCodes.Callvirt &&
+                         (MethodInfo) instructionsList[i + 3].operand == Method(typeof(Thing), "get_Position"))
                 {
                     matchFound = true;
                     instructionsList[i].opcode = OpCodes.Ldloc_1;
                     instructionsList[i].operand = null;
                     yield return instructionsList[i];
                     i++;
-                    Label label = iLGenerator.DefineLabel();
+                    var label = iLGenerator.DefineLabel();
                     yield return new CodeInstruction(OpCodes.Brfalse, label);
                     yield return new CodeInstruction(OpCodes.Ldloc_0);
                     yield return instructionsList[i];
@@ -78,10 +81,8 @@ namespace RimThreaded.Mod_Patches
                     i++;
                 }
             }
-            if (!matchFound)
-            {
-                Log.Error("IL code instructions not found");
-            }
+
+            if (!matchFound) Log.Error("IL code instructions not found");
         }
     }
 }

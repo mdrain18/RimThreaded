@@ -5,14 +5,14 @@ using Verse;
 
 namespace RimThreaded.Mod_Patches
 {
-    class DubsSkylight_getPatch_Transpile
+    internal class DubsSkylight_getPatch_Transpile
     {
-
-        public static IEnumerable<CodeInstruction> Postfix(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Postfix(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
             // Local field and Label Declaration
             iLGenerator.DeclareLocal(typeof(Room));
-            Label il_002b = iLGenerator.DefineLabel();
+            var il_002b = iLGenerator.DefineLabel();
 
             // Room room = c.getRoom(map)
             yield return new CodeInstruction(OpCodes.Ldarg_0);
@@ -31,13 +31,15 @@ namespace RimThreaded.Mod_Patches
             yield return new CodeInstruction(OpCodes.Brfalse_S, il_002b);
 
             //relt == true
-            yield return new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(AccessTools.TypeByName("Dubs_Skylight.Patch_GetRoof"), "relt"));
+            yield return new CodeInstruction(OpCodes.Ldsfld,
+                AccessTools.Field(AccessTools.TypeByName("Dubs_Skylight.Patch_GetRoof"), "relt"));
             yield return new CodeInstruction(OpCodes.Brfalse_S, il_002b);
 
             //room.Role == IndoorGarden
             yield return new CodeInstruction(OpCodes.Ldloc_0);
             yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Room), "get_Role"));
-            yield return new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(AccessTools.TypeByName("Dubs_Skylight.DubDef"), "IndoorGarden"));
+            yield return new CodeInstruction(OpCodes.Ldsfld,
+                AccessTools.Field(AccessTools.TypeByName("Dubs_Skylight.DubDef"), "IndoorGarden"));
             yield return new CodeInstruction(OpCodes.Bne_Un_S, il_002b);
 
             // __Result = null
@@ -46,10 +48,9 @@ namespace RimThreaded.Mod_Patches
             yield return new CodeInstruction(OpCodes.Stind_Ref);
 
             // Return with label
-            CodeInstruction ci = new CodeInstruction(OpCodes.Ret);
+            var ci = new CodeInstruction(OpCodes.Ret);
             ci.labels.Add(il_002b);
             yield return ci;
         }
-
     }
 }

@@ -4,7 +4,7 @@ using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class World_Patch
+    internal class World_Patch
     {
         [ThreadStatic] public static List<ThingDef> tmpNaturalRockDefs = new List<ThingDef>();
         [ThreadStatic] public static List<int> tmpNeighbors = new List<int>();
@@ -16,6 +16,5 @@ namespace RimThreaded.RW_Patches
             tmpNeighbors = new List<int>();
             tmpOceanDirs = new List<Rot4>();
         }
-
     }
 }

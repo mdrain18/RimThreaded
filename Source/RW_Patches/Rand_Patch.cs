@@ -1,16 +1,16 @@
-﻿using Verse;
-using System;
+﻿using System;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public static class Rand_Patch
     {
         public static object lockObject = new object();
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Rand);
-            Type patched = typeof(Rand_Patch);
+            var original = typeof(Rand);
+            var patched = typeof(Rand_Patch);
             RimThreadedHarmony.Prefix(original, patched, "PushState", Type.EmptyTypes);
             RimThreadedHarmony.Prefix(original, patched, "PopState");
         }
@@ -21,17 +21,18 @@ namespace RimThreaded.RW_Patches
             {
                 Rand.stateStack.Push(Rand.StateCompressed);
             }
+
             return false;
         }
+
         public static bool PopState()
         {
             lock (lockObject)
             {
                 Rand.StateCompressed = Rand.stateStack.Pop();
             }
+
             return false;
         }
-
     }
-
 }

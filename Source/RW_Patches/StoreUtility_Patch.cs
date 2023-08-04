@@ -1,17 +1,17 @@
 ﻿using RimWorld;
-using System;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class StoreUtility_Patch
+    internal class StoreUtility_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(StoreUtility);
-            Type patched = typeof(StoreUtility_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(CurrentHaulDestinationOf), new Type[] { typeof(Thing) });
+            var original = typeof(StoreUtility);
+            var patched = typeof(StoreUtility_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(CurrentHaulDestinationOf), new[] {typeof(Thing)});
         }
+
         public static bool CurrentHaulDestinationOf(ref IHaulDestination __result, Thing t)
         {
             __result = null;
@@ -22,10 +22,11 @@ namespace RimThreaded.RW_Patches
                 __result = t.ParentHolder as IHaulDestination;
                 return false;
             }
-            Map map = t.Map;
+
+            var map = t.Map;
             if (map == null)
                 return false;
-            HaulDestinationManager haulDestinationManager = map.haulDestinationManager;
+            var haulDestinationManager = map.haulDestinationManager;
             if (haulDestinationManager == null)
                 return false;
             __result = haulDestinationManager.SlotGroupParentAt(t.Position);

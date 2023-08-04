@@ -15,6 +15,5 @@ namespace RimThreaded.RW_Patches
             cardinals = GenAdj.CardinalDirections.ToList();
             diagonals = GenAdj.DiagonalDirections.ToList();
         }
-
     }
 }

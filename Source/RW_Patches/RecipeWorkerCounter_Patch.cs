@@ -1,6 +1,4 @@
 ﻿using RimWorld;
-using System;
-using System.Collections.Generic;
 using Verse;
 
 namespace RimThreaded.RW_Patches
@@ -9,35 +7,33 @@ namespace RimThreaded.RW_Patches
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(RecipeWorkerCounter);
-            Type patched = typeof(RecipeWorkerCounter_Patch);
+            var original = typeof(RecipeWorkerCounter);
+            var patched = typeof(RecipeWorkerCounter_Patch);
             RimThreadedHarmony.Prefix(original, patched, "GetCarriedCount");
         }
 
-        public static bool GetCarriedCount(RecipeWorkerCounter __instance, ref int __result, Bill_Production bill, ThingDef prodDef)
+        public static bool GetCarriedCount(RecipeWorkerCounter __instance, ref int __result, Bill_Production bill,
+            ThingDef prodDef)
         {
-            int num = 0;
+            var num = 0;
             //foreach (Pawn item in bill.Map.mapPawns.FreeColonistsSpawned)
-            if (!RimThreaded.billFreeColonistsSpawned.TryGetValue(bill, out List<Pawn> freeColonistsSpawned))
+            if (!RimThreaded.billFreeColonistsSpawned.TryGetValue(bill, out var freeColonistsSpawned))
             {
                 freeColonistsSpawned = bill.Map.mapPawns.FreeColonistsSpawned;
                 RimThreaded.billFreeColonistsSpawned[bill] = freeColonistsSpawned;
             }
-            for (int i = 0; i < freeColonistsSpawned.Count; i++)
+
+            for (var i = 0; i < freeColonistsSpawned.Count; i++)
             {
-                Thing carriedThing = freeColonistsSpawned[i]?.carryTracker?.CarriedThing;
+                var carriedThing = freeColonistsSpawned[i]?.carryTracker?.CarriedThing;
                 if (carriedThing == null) continue;
-                int stackCount = carriedThing.stackCount;
+                var stackCount = carriedThing.stackCount;
                 carriedThing = carriedThing.GetInnerIfMinified();
-                if (__instance.CountValidThing(carriedThing, bill, prodDef))
-                {
-                    num += stackCount;
-                }
+                if (__instance.CountValidThing(carriedThing, bill, prodDef)) num += stackCount;
             }
 
             __result = num;
             return false;
         }
-
     }
 }

@@ -14,24 +14,27 @@ namespace RimThreaded.RW_Patches
         {
             RimThreadedHarmony.Prefix(Original, Patched, "AllSubclassesNonAbstract");
         }
+
         public static bool AllSubclassesNonAbstract(Type baseType, ref List<Type> __result)
         {
-            if (GenTypes.cachedSubclassesNonAbstract.TryGetValue(baseType, out List<Type> typeList))
+            if (GenTypes.cachedSubclassesNonAbstract.TryGetValue(baseType, out var typeList))
             {
                 __result = typeList;
                 return false;
             }
+
             lock (GenTypes.cachedSubclassesNonAbstract)
             {
-                if (!GenTypes.cachedSubclassesNonAbstract.TryGetValue(baseType, out List<Type> typeList2))
+                if (!GenTypes.cachedSubclassesNonAbstract.TryGetValue(baseType, out var typeList2))
                 {
-                    typeList = GenTypes.AllTypes.Where((x) => x.IsSubclassOf(baseType) && !x.IsAbstract).ToList();
+                    typeList = GenTypes.AllTypes.Where(x => x.IsSubclassOf(baseType) && !x.IsAbstract).ToList();
                     GenTypes.cachedSubclassesNonAbstract.Add(baseType, typeList);
                 }
                 else
                 {
                     typeList = typeList2;
                 }
+
                 __result = typeList;
                 return false;
             }

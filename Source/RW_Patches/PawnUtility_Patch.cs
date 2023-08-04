@@ -1,8 +1,6 @@
-﻿using RimWorld;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using RimWorld;
 using Verse;
-using Verse.AI;
 
 namespace RimThreaded.RW_Patches
 {
@@ -12,52 +10,60 @@ namespace RimThreaded.RW_Patches
 
         public static void RunDestructivePatches()
         {
-            Type original = typeof(PawnUtility);
-            Type patched = typeof(PawnUtility_Patch);
+            var original = typeof(PawnUtility);
+            var patched = typeof(PawnUtility_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(IsInvisible));
             RimThreadedHarmony.Prefix(original, patched, nameof(PawnBlockingPathAt));
         }
 
         public static bool PawnBlockingPathAt(ref Pawn __result,
-          IntVec3 c,
-          Pawn forPawn,
-          bool actAsIfHadCollideWithPawnsJob = false,
-          bool collideOnlyWithStandingPawns = false,
-          bool forPathFinder = false)
+            IntVec3 c,
+            Pawn forPawn,
+            bool actAsIfHadCollideWithPawnsJob = false,
+            bool collideOnlyWithStandingPawns = false,
+            bool forPathFinder = false)
         {
-            List<Thing> thingList = c.GetThingList(forPawn.Map);
+            var thingList = c.GetThingList(forPawn.Map);
             if (thingList.Count == 0)
             {
                 __result = null;
                 return false;
             }
-            bool flag = false;
+
+            var flag = false;
             if (actAsIfHadCollideWithPawnsJob)
             {
                 flag = true;
             }
             else
             {
-                Job curJob = forPawn.CurJob;
-                if (curJob != null && (curJob.collideWithPawns || curJob.def.collideWithPawns || forPawn.jobs.curDriver.collideWithPawns))
+                var curJob = forPawn.CurJob;
+                if (curJob != null && (curJob.collideWithPawns || curJob.def.collideWithPawns ||
+                                       forPawn.jobs.curDriver.collideWithPawns))
+                {
                     flag = true;
+                }
                 else if (forPawn.Drafted)
                 {
-                    int num = forPawn.pather.Moving ? 1 : 0;
+                    var num = forPawn.pather.Moving ? 1 : 0;
                 }
             }
-            for (int index = 0; index < thingList.Count; ++index)
-            {
-                if (thingList[index] is Pawn pawn1 && pawn1 != forPawn && !pawn1.Downed && (!collideOnlyWithStandingPawns || !pawn1.pather.MovingNow && (!pawn1.pather.Moving || !pawn1.pather.MovedRecently(60))) && !PawnUtility.PawnsCanShareCellBecauseOfBodySize(pawn1, forPawn))
+
+            for (var index = 0; index < thingList.Count; ++index)
+                if (thingList[index] is Pawn pawn1 && pawn1 != forPawn && !pawn1.Downed &&
+                    (!collideOnlyWithStandingPawns || !pawn1.pather.MovingNow &&
+                        (!pawn1.pather.Moving || !pawn1.pather.MovedRecently(60))) &&
+                    !PawnUtility.PawnsCanShareCellBecauseOfBodySize(pawn1, forPawn))
                 {
                     if (pawn1.HostileTo(forPawn))
                     {
                         __result = pawn1;
                         return false;
                     }
+
                     if (flag && (forPathFinder || !forPawn.Drafted || !pawn1.RaceProps.Animal))
                     {
-                        Job curJob = pawn1.CurJob;
+                        var curJob = pawn1.CurJob;
                         if (curJob != null)
                         {
                             if (curJob.collideWithPawns)
@@ -65,18 +71,20 @@ namespace RimThreaded.RW_Patches
                                 __result = pawn1;
                                 return false;
                             }
-                            JobDef def = curJob.def;
+
+                            var def = curJob.def;
                             if (def != null && def.collideWithPawns)
                             {
                                 __result = pawn1;
                                 return false;
                             }
+
                             if (pawn1 != null)
                             {
-                                Pawn_JobTracker jobs = pawn1.jobs;
+                                var jobs = pawn1.jobs;
                                 if (jobs != null)
                                 {
-                                    JobDriver curDriver = jobs.curDriver;
+                                    var curDriver = jobs.curDriver;
                                     if (curDriver != null && curDriver.collideWithPawns)
                                     {
                                         __result = pawn1;
@@ -87,47 +95,39 @@ namespace RimThreaded.RW_Patches
                         }
                     }
                 }
-            }
+
             __result = null;
             return false;
         }
 
         public static bool IsInvisible(ref bool __result, Pawn pawn)
         {
-            if (!isPawnInvisible.TryGetValue(pawn, out bool isInvisible))
-            {
+            if (!isPawnInvisible.TryGetValue(pawn, out var isInvisible))
                 lock (isPawnInvisible)
                 {
-                    if (!isPawnInvisible.TryGetValue(pawn, out bool isInvisible2))
-                    {
+                    if (!isPawnInvisible.TryGetValue(pawn, out var isInvisible2))
                         isInvisible = RecalculateInvisibility(pawn);
-                    }
                     else
-                    {
                         isInvisible = isInvisible2;
-                    }
                 }
-            }
+
             __result = isInvisible;
             return false;
         }
 
         public static bool RecalculateInvisibility(Pawn pawn)
         {
-            bool isInvisible = false;
-            List<Hediff> hediffs = pawn.health.hediffSet.hediffs;
-            for (int i = 0; i < hediffs.Count; i++)
-            {
+            var isInvisible = false;
+            var hediffs = pawn.health.hediffSet.hediffs;
+            for (var i = 0; i < hediffs.Count; i++)
                 if (hediffs[i].TryGetComp<HediffComp_Invisibility>() != null)
                 {
                     isInvisible = true;
                     break;
                 }
-            }
+
             isPawnInvisible[pawn] = isInvisible;
             return isInvisible;
         }
-
-
     }
 }

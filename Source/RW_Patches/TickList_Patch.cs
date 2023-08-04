@@ -1,10 +1,10 @@
-﻿using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
+using HarmonyLib;
 using Verse;
 using static HarmonyLib.AccessTools;
 
@@ -12,11 +12,19 @@ namespace RimThreaded.RW_Patches
 {
     public class TickList_Patch
     {
+        public static List<Thing> normalThingList;
+        public static int normalThingListTicks;
+
+        public static List<Thing> rareThingList;
+        public static int rareThingListTicks;
+
+        public static List<Thing> longThingList;
+        public static int longThingListTicks;
 
         public static void RunNonDestructivePatches()
         {
-            Type original = typeof(TickList);
-            Type patched = typeof(TickList_Patch);
+            var original = typeof(TickList);
+            var patched = typeof(TickList_Patch);
             RimThreadedHarmony.TranspileMethodLock(original, nameof(TickList.RegisterThing));
             RimThreadedHarmony.TranspileMethodLock(original, nameof(TickList.DeregisterThing));
             RimThreadedHarmony.Transpile(original, patched, nameof(Tick));
@@ -26,12 +34,13 @@ namespace RimThreaded.RW_Patches
 
         public static void TickPostfix(TickList __instance)
         {
-            int currentTickInterval = __instance.TickInterval;
-            TickerType currentTickType = __instance.tickType;
+            var currentTickInterval = __instance.TickInterval;
+            var currentTickType = __instance.tickType;
             switch (currentTickType)
             {
                 case TickerType.Normal:
-                    RimThreaded.thingListNormal = __instance.thingLists[Find.TickManager.TicksGame % currentTickInterval];
+                    RimThreaded.thingListNormal =
+                        __instance.thingLists[Find.TickManager.TicksGame % currentTickInterval];
                     RimThreaded.thingListNormalTicks = RimThreaded.thingListNormal.Count;
                     break;
                 case TickerType.Rare:
@@ -49,48 +58,40 @@ namespace RimThreaded.RW_Patches
             }
         }
 
-        public static IEnumerable<CodeInstruction> Tick(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Tick(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
+            var instructionsList = instructions.ToList();
+            var i = 0;
             while (i < instructionsList.Count)
             {
                 if (i + 2 < instructionsList.Count && instructionsList[i + 2].opcode == OpCodes.Call)
-                {
                     if (instructionsList[i + 2].operand is MethodInfo methodInfo)
-                    {
                         if (methodInfo == Method(typeof(Find), "get_TickManager"))
                         {
-                            List<Label> labels = instructionsList[i].labels;
+                            var labels = instructionsList[i].labels;
                             while (i < instructionsList.Count)
                             {
                                 if (instructionsList[i].opcode == OpCodes.Blt)
                                 {
                                     i++;
-                                    foreach (Label label in labels)
-                                    {
-                                        instructionsList[i].labels.Add(label);
-                                    }
+                                    foreach (var label in labels) instructionsList[i].labels.Add(label);
                                     break;
                                 }
+
                                 i++;
                             }
-
                         }
-                    }
-                }
+
                 yield return instructionsList[i++];
             }
         }
 
-        public static List<Thing> normalThingList;
-        public static int normalThingListTicks;
-
         public static void NormalThingPrepare()
         {
-            TickList tickList = RimThreaded.callingTickManager.tickListNormal;
+            var tickList = RimThreaded.callingTickManager.tickListNormal;
             tickList.Tick();
-            int currentTickInterval = tickList.TickInterval;
+            var currentTickInterval = tickList.TickInterval;
             normalThingList = tickList.thingLists[RimThreaded.callingTickManager.TicksGame % currentTickInterval];
             normalThingListTicks = normalThingList.Count;
         }
@@ -103,9 +104,9 @@ namespace RimThreaded.RW_Patches
             //s1 = new Stopwatch();
             while (true)
             {
-                int index = Interlocked.Decrement(ref normalThingListTicks);
+                var index = Interlocked.Decrement(ref normalThingListTicks);
                 if (index < 0) return;
-                Thing thing = normalThingList[index];
+                var thing = normalThingList[index];
                 if (thing.Destroyed) continue;
                 try
                 {
@@ -274,29 +275,22 @@ namespace RimThreaded.RW_Patches
                 }
                 catch (Exception ex)
                 {
-                    string text = thing.Spawned ? " (at " + thing.Position + ")" : "";
+                    var text = thing.Spawned ? " (at " + thing.Position + ")" : "";
                     if (Prefs.DevMode)
-                    {
                         Log.Error("Exception ticking " + thing.ToStringSafe() + text + ": " + ex);
-                    }
                     else
-                    {
                         Log.ErrorOnce(
                             "Exception ticking " + thing.ToStringSafe() + text +
                             ". Suppressing further errors. Exception: " + ex, thing.thingIDNumber ^ 0x22627165);
-                    }
                 }
             }
         }
 
-        public static List<Thing> rareThingList;
-        public static int rareThingListTicks;
-
         public static void RareThingPrepare()
         {
-            TickList tickList = RimThreaded.callingTickManager.tickListRare;
+            var tickList = RimThreaded.callingTickManager.tickListRare;
             tickList.Tick();
-            int currentTickInterval = tickList.TickInterval;
+            var currentTickInterval = tickList.TickInterval;
             rareThingList = tickList.thingLists[RimThreaded.callingTickManager.TicksGame % currentTickInterval];
             rareThingListTicks = rareThingList.Count;
         }
@@ -305,9 +299,9 @@ namespace RimThreaded.RW_Patches
         {
             while (true)
             {
-                int index = Interlocked.Decrement(ref rareThingListTicks);
+                var index = Interlocked.Decrement(ref rareThingListTicks);
                 if (index < 0) return;
-                Thing thing = rareThingList[index];
+                var thing = rareThingList[index];
                 if (thing.Destroyed) continue;
                 try
                 {
@@ -315,29 +309,22 @@ namespace RimThreaded.RW_Patches
                 }
                 catch (Exception ex)
                 {
-                    string text = thing.Spawned ? " (at " + thing.Position + ")" : "";
+                    var text = thing.Spawned ? " (at " + thing.Position + ")" : "";
                     if (Prefs.DevMode)
-                    {
                         Log.Error("Exception ticking " + thing.ToStringSafe() + text + ": " + ex);
-                    }
                     else
-                    {
                         Log.ErrorOnce(
                             "Exception ticking " + thing.ToStringSafe() + text +
                             ". Suppressing further errors. Exception: " + ex, thing.thingIDNumber ^ 0x22627165);
-                    }
                 }
             }
         }
 
-        public static List<Thing> longThingList;
-        public static int longThingListTicks;
-
         public static void LongThingPrepare()
         {
-            TickList tickList = RimThreaded.callingTickManager.tickListLong;
+            var tickList = RimThreaded.callingTickManager.tickListLong;
             tickList.Tick();
-            int currentTickInterval = tickList.TickInterval;
+            var currentTickInterval = tickList.TickInterval;
             longThingList = tickList.thingLists[RimThreaded.callingTickManager.TicksGame % currentTickInterval];
             longThingListTicks = longThingList.Count;
         }
@@ -346,9 +333,9 @@ namespace RimThreaded.RW_Patches
         {
             while (true)
             {
-                int index = Interlocked.Decrement(ref longThingListTicks);
+                var index = Interlocked.Decrement(ref longThingListTicks);
                 if (index < 0) return;
-                Thing thing = longThingList[index];
+                var thing = longThingList[index];
                 if (thing.Destroyed) continue;
                 try
                 {
@@ -356,20 +343,15 @@ namespace RimThreaded.RW_Patches
                 }
                 catch (Exception ex)
                 {
-                    string text = thing.Spawned ? " (at " + thing.Position + ")" : "";
+                    var text = thing.Spawned ? " (at " + thing.Position + ")" : "";
                     if (Prefs.DevMode)
-                    {
                         Log.Error("Exception ticking " + thing.ToStringSafe() + text + ": " + ex);
-                    }
                     else
-                    {
                         Log.ErrorOnce(
                             "Exception ticking " + thing.ToStringSafe() + text +
                             ". Suppressing further errors. Exception: " + ex, thing.thingIDNumber ^ 0x22627165);
-                    }
                 }
             }
         }
-
     }
 }

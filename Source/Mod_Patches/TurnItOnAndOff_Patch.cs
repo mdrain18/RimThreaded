@@ -1,21 +1,21 @@
-﻿
-using System;
+﻿using System.Threading;
 using Verse;
 using static HarmonyLib.AccessTools;
-using System.Threading;
 
 namespace RimThreaded.Mod_Patches
 {
     public class TurnItOnAndOff_Patch
     {
-        public static ReaderWriterLockSlim buildingsInUseThisTickLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);//maybe not
+        public static ReaderWriterLockSlim buildingsInUseThisTickLock =
+            new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion); //maybe not
+
         public static void Patch()
         {
-            Type TurnItOnandOff = TypeByName("TurnOnOffRePowered.TurnItOnandOff");
+            var TurnItOnandOff = TypeByName("TurnOnOffRePowered.TurnItOnandOff");
             if (TurnItOnandOff != null)
             {
                 //----------- buildingsInUseThisTick
-                string methodName = "EvaluateRimfactoryWork";
+                var methodName = "EvaluateRimfactoryWork";
                 Log.Message("RimThreaded is patching " + TurnItOnandOff.FullName + " " + methodName);
                 MethodLocker.LockMethodOn(TurnItOnandOff, methodName, LockFlag.WriterLock, buildingsInUseThisTickLock);
                 methodName = "Tick";

@@ -1,36 +1,32 @@
 ﻿using System;
-using Verse;
 using System.Collections.Concurrent;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class LongEventHandler_Patch
     {
-
         public static ConcurrentQueue<Action> toExecuteWhenFinished2 = new ConcurrentQueue<Action>();
 
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(LongEventHandler);
-            Type patched = typeof(LongEventHandler_Patch);
+            var original = typeof(LongEventHandler);
+            var patched = typeof(LongEventHandler_Patch);
             RimThreadedHarmony.Prefix(original, patched, "ExecuteToExecuteWhenFinished");
             RimThreadedHarmony.Prefix(original, patched, "ExecuteWhenFinished");
         }
+
         public static void RunNonDestructivePatches()
         {
-            Type original = typeof(LongEventHandler);
-            Type patched = typeof(LongEventHandler_Patch);
+            var original = typeof(LongEventHandler);
+            var patched = typeof(LongEventHandler_Patch);
             RimThreadedHarmony.Prefix(original, patched, "RunEventFromAnotherThread", null, false);
         }
 
         public static bool ExecuteToExecuteWhenFinished()
         {
-            if (toExecuteWhenFinished2.Count > 0)
-            {
-                DeepProfiler.Start("ExecuteToExecuteWhenFinished()");
-            }
-            while (toExecuteWhenFinished2.TryDequeue(out Action action))
+            if (toExecuteWhenFinished2.Count > 0) DeepProfiler.Start("ExecuteToExecuteWhenFinished()");
+            while (toExecuteWhenFinished2.TryDequeue(out var action))
             {
                 DeepProfiler.Start(action.Method.DeclaringType + " -> " + action.Method);
                 try
@@ -47,14 +43,12 @@ namespace RimThreaded.RW_Patches
                 }
             }
 
-            if (toExecuteWhenFinished2.Count > 0)
-            {
-                DeepProfiler.End();
-            }
+            if (toExecuteWhenFinished2.Count > 0) DeepProfiler.End();
 
             LongEventHandler.toExecuteWhenFinished.Clear();
             return false;
         }
+
         public static bool ExecuteWhenFinished(Action action)
         {
             toExecuteWhenFinished2.Enqueue(action);
@@ -66,9 +60,5 @@ namespace RimThreaded.RW_Patches
             RimThreaded.InitializeAllThreadStatics();
             return true;
         }
-
     }
-
-
-
 }

@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class DynamicDrawManager_Patch
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(DynamicDrawManager);
-            Type patched = typeof(DynamicDrawManager_Patch);
+            var original = typeof(DynamicDrawManager);
+            var patched = typeof(DynamicDrawManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, "RegisterDrawable");
             RimThreadedHarmony.Prefix(original, patched, "DeRegisterDrawable");
         }
@@ -19,11 +17,13 @@ namespace RimThreaded.RW_Patches
         {
             if (t.def.drawerType == DrawerType.None) return false;
             if (__instance.drawingNow)
-                Log.Warning("Cannot register drawable " + t + " while drawing is in progress. Things shouldn't be spawned in Draw methods.");
+                Log.Warning("Cannot register drawable " + t +
+                            " while drawing is in progress. Things shouldn't be spawned in Draw methods.");
             lock (__instance)
             {
                 __instance.drawThings.Add(t);
             }
+
             return false;
         }
 
@@ -31,17 +31,16 @@ namespace RimThreaded.RW_Patches
         {
             if (t.def.drawerType == DrawerType.None) return false;
             if (__instance.drawingNow)
-                Log.Warning("Cannot deregister drawable " + t + " while drawing is in progress. Things shouldn't be despawned in Draw methods.");
+                Log.Warning("Cannot deregister drawable " + t +
+                            " while drawing is in progress. Things shouldn't be despawned in Draw methods.");
             lock (__instance)
             {
-                HashSet<Thing> newDrawThings = new HashSet<Thing>(__instance.drawThings);
+                var newDrawThings = new HashSet<Thing>(__instance.drawThings);
                 newDrawThings.Remove(t);
                 __instance.drawThings = newDrawThings;
             }
+
             return false;
         }
-
-
     }
-
 }

@@ -1,15 +1,20 @@
 $rimworldSourceFolder = "C:\RWSource"
 $rimworldSearchDir = "C:\Rimworld"
 
-if(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 294100") {
+if (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 294100")
+{
     $rimworldSearchDir = Get-ItemPropertyValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 294100" -Name InstallLocation
 }
-if (!($rimworldDir = Read-Host "Enter RimWorld directory [$rimworldSearchDir]")) { $rimworldDir = $rimworldSearchDir }
+if (!($rimworldDir = Read-Host "Enter RimWorld directory [$rimworldSearchDir]"))
+{
+    $rimworldDir = $rimworldSearchDir
+}
 $rimworldDataDir = Join-Path -Path $rimworldDir -ChildPath "RimWorldWin64_Data"
 $rimworldManagedDir = Join-Path -Path $rimworldDataDir -ChildPath "Managed"
 $assemblyPath = Join-Path -Path $rimworldManagedDir -ChildPath "Assembly-CSharp.dll"
 
-if((Test-Path $assemblyPath) -eq $false) {
+if ((Test-Path $assemblyPath) -eq $false)
+{
     Write-Error ("Assembly file not found in: " + $assemblyPath)
     exit
 }
@@ -21,7 +26,8 @@ $majorMinorVersion = $majorMinorSplit[0..1] -join "."
 Write-Host ("Detected Version: " + $majorMinorVersion)
 
 $rimworldSourceVersionFolder = Join-Path -Path $rimworldSourceFolder -ChildPath $majorMinorVersion
-if((Test-Path -Path $rimworldSourceVersionFolder) -eq $false) {
+if ((Test-Path -Path $rimworldSourceVersionFolder) -eq $false)
+{
     $null = New-Item -Path $rimworldSourceVersionFolder -ItemType Directory
 }
 

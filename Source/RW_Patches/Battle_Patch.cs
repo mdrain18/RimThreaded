@@ -1,18 +1,18 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class Battle_Patch
+    internal class Battle_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Battle);
-            Type patched = typeof(Battle_Patch);
+            var original = typeof(Battle);
+            var patched = typeof(Battle_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(Absorb));
         }
+
         public static bool Absorb(Battle __instance, Battle battle)
         {
             lock (__instance)
@@ -22,6 +22,7 @@ namespace RimThreaded.RW_Patches
                 __instance.concerns.AddRange(battle.concerns);
                 __instance.entries = __instance.entries.OrderBy(e => e.Age).ToList();
             }
+
             battle.entries.Clear();
             battle.concerns.Clear();
             battle.absorbedBy = __instance;

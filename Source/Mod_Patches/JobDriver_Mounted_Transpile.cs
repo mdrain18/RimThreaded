@@ -29,7 +29,7 @@
         //                yield return instructionsList[currentInstructionIndex];
         //                currentInstructionIndex++;
         //            }
-                    
+
         //            yield return new CodeInstruction(OpCodes.Stloc, curJob.LocalIndex);
         //            yield return new CodeInstruction(OpCodes.Ldloc, curJob.LocalIndex);
         //            yield return new CodeInstruction(OpCodes.Brfalse_S, 

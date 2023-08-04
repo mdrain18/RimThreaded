@@ -1,5 +1,4 @@
 ﻿using RimWorld;
-using System;
 using Verse;
 using Verse.AI;
 
@@ -9,8 +8,8 @@ namespace RimThreaded.RW_Patches
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Pawn_MindState);
-            Type patched = typeof(Pawn_MindState_Patch);
+            var original = typeof(Pawn_MindState);
+            var patched = typeof(Pawn_MindState_Patch);
             RimThreadedHarmony.Prefix(original, patched, "MindStateTick");
         }
 
@@ -26,26 +25,31 @@ namespace RimThreaded.RW_Patches
             if (!__instance.pawn.GetPosture().Laying())
                 __instance.applyBedThoughtsTick = 0;
             if (__instance.pawn.IsHashIntervalTick(100))
-                __instance.anyCloseHostilesRecently = __instance.pawn.Spawned && PawnUtility.EnemiesAreNearby(__instance.pawn, __instance.anyCloseHostilesRecently ? 24 : 18, true);
+                __instance.anyCloseHostilesRecently = __instance.pawn.Spawned &&
+                                                      PawnUtility.EnemiesAreNearby(__instance.pawn,
+                                                          __instance.anyCloseHostilesRecently ? 24 : 18, true);
             if (__instance.WillJoinColonyIfRescued && __instance.AnythingPreventsJoiningColonyIfRescued)
                 __instance.WillJoinColonyIfRescued = false;
-            if (__instance.pawn.Spawned && __instance.pawn.IsWildMan() && !__instance.WildManEverReachedOutside && __instance.pawn.GetRoom(RegionType.Set_Passable) != null && __instance.pawn.GetRoom(RegionType.Set_Passable).TouchesMapEdge)
+            if (__instance.pawn.Spawned && __instance.pawn.IsWildMan() && !__instance.WildManEverReachedOutside &&
+                __instance.pawn.GetRoom(RegionType.Set_Passable) != null &&
+                __instance.pawn.GetRoom(RegionType.Set_Passable).TouchesMapEdge)
                 __instance.WildManEverReachedOutside = true;
-            if (Find.TickManager.TicksGame % 123 == 0 && __instance.pawn.Spawned && __instance.pawn.RaceProps.IsFlesh && __instance.pawn.needs.mood != null)
+            if (Find.TickManager.TicksGame % 123 == 0 && __instance.pawn.Spawned && __instance.pawn.RaceProps.IsFlesh &&
+                __instance.pawn.needs.mood != null)
             {
-                TerrainDef terrain = __instance.pawn.Position.GetTerrain(__instance.pawn.Map);
+                var terrain = __instance.pawn.Position.GetTerrain(__instance.pawn.Map);
                 if (terrain.traversedThought != null)
                     __instance.pawn.needs.mood.thoughts.memories.TryGainMemoryFast(terrain.traversedThought);
-                WeatherDef curWeatherLerped = __instance.pawn.Map.weatherManager.CurWeatherLerped;
+                var curWeatherLerped = __instance.pawn.Map.weatherManager.CurWeatherLerped;
                 if (curWeatherLerped.exposedThought != null && !__instance.pawn.Position.Roofed(__instance.pawn.Map))
                     __instance.pawn.needs.mood.thoughts.memories.TryGainMemoryFast(curWeatherLerped.exposedThought);
             }
+
             //dirty hack for easy speedup - i'm sure this breaks things like pawn conversation interval.
             //if (GenLocalDate.DayTick((Thing)__instance.pawn) != 0)
             //	return;
             __instance.interactionsToday = 0;
             return false;
         }
-
     }
 }

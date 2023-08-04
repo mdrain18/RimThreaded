@@ -1,15 +1,14 @@
 ﻿using RimWorld;
-using System;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class OverlayDrawer_Patch
+    internal class OverlayDrawer_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(OverlayDrawer);
-            Type patched = typeof(OverlayDrawer_Patch);
+            var original = typeof(OverlayDrawer);
+            var patched = typeof(OverlayDrawer_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(GetOverlaysHandle));
             RimThreadedHarmony.Prefix(original, patched, nameof(DisposeHandle));
         }
@@ -21,6 +20,7 @@ namespace RimThreaded.RW_Patches
                 __result = null;
                 return false;
             }
+
             ThingOverlaysHandle thingOverlaysHandle;
             lock (__instance) //added
             {
@@ -30,9 +30,11 @@ namespace RimThreaded.RW_Patches
                     __instance.overlayHandles.Add(thing, thingOverlaysHandle);
                 }
             }
+
             __result = thingOverlaysHandle;
             return false;
         }
+
         public static bool DisposeHandle(OverlayDrawer __instance, Thing thing)
         {
             ThingOverlaysHandle thingOverlaysHandle;
@@ -44,6 +46,7 @@ namespace RimThreaded.RW_Patches
                     __instance.overlayHandles.Remove(thing);
                 }
             }
+
             return false;
         }
     }

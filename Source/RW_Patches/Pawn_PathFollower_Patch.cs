@@ -1,33 +1,37 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using Verse;
 using Verse.AI;
 
 namespace RimThreaded.RW_Patches
 {
-    class Pawn_PathFollower_Patch
+    internal class Pawn_PathFollower_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Pawn_PathFollower);
-            Type patched = typeof(Pawn_PathFollower_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(CostToMoveIntoCell), new Type[] { typeof(Pawn), typeof(IntVec3) });
+            var original = typeof(Pawn_PathFollower);
+            var patched = typeof(Pawn_PathFollower_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(CostToMoveIntoCell),
+                new[] {typeof(Pawn), typeof(IntVec3)});
         }
 
         public static bool CostToMoveIntoCell(ref int __result, Pawn pawn, IntVec3 c)
         {
-            int a = (c.x == pawn.Position.x || c.z == pawn.Position.z ? pawn.TicksPerMoveCardinal : pawn.TicksPerMoveDiagonal) + pawn.Map.pathing.For(pawn).pathGrid.CalculatedCostAt(c, false, pawn.Position);
-            Building edifice = c.GetEdifice(pawn.Map);
+            var a = (c.x == pawn.Position.x || c.z == pawn.Position.z
+                        ? pawn.TicksPerMoveCardinal
+                        : pawn.TicksPerMoveDiagonal) +
+                    pawn.Map.pathing.For(pawn).pathGrid.CalculatedCostAt(c, false, pawn.Position);
+            var edifice = c.GetEdifice(pawn.Map);
             if (edifice != null)
                 a += edifice.PathWalkCostFor(pawn);
             if (a > 450)
                 a = 450;
             if (pawn.CurJob != null)
             {
-                Pawn locomotionUrgencySameAs = pawn?.jobs?.curDriver?.locomotionUrgencySameAs; //changed
-                if (locomotionUrgencySameAs != null && locomotionUrgencySameAs != pawn && locomotionUrgencySameAs.Spawned)
+                var locomotionUrgencySameAs = pawn?.jobs?.curDriver?.locomotionUrgencySameAs; //changed
+                if (locomotionUrgencySameAs != null && locomotionUrgencySameAs != pawn &&
+                    locomotionUrgencySameAs.Spawned)
                 {
-                    int moveIntoCell = Pawn_PathFollower.CostToMoveIntoCell(locomotionUrgencySameAs, c);
+                    var moveIntoCell = Pawn_PathFollower.CostToMoveIntoCell(locomotionUrgencySameAs, c);
                     if (a < moveIntoCell)
                         a = moveIntoCell;
                 }
@@ -40,16 +44,12 @@ namespace RimThreaded.RW_Patches
                             if (a < 60)
                             {
                                 a = 60;
-                                break;
                             }
+
                             break;
                         case LocomotionUrgency.Walk:
                             a *= 2;
-                            if (a < 50)
-                            {
-                                a = 50;
-                                break;
-                            }
+                            if (a < 50) a = 50;
                             break;
                         case LocomotionUrgency.Jog:
                             //a = a; //commented out
@@ -60,6 +60,7 @@ namespace RimThreaded.RW_Patches
                     }
                 }
             }
+
             __result = Mathf.Max(a, 1);
             return false;
         }

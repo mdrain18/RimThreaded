@@ -1,6 +1,5 @@
-using Verse;
 using UnityEngine;
-using System;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
@@ -8,8 +7,8 @@ namespace RimThreaded.RW_Patches
     {
         public static void RunDestructivePatches()
         {
-            Type original = typeof(TickManager);
-            Type patched = typeof(TickManager_Patch);
+            var original = typeof(TickManager);
+            var patched = typeof(TickManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(DoSingleTick));
             RimThreadedHarmony.Prefix(original, patched, nameof(get_TickRateMultiplier));
         }
@@ -19,18 +18,15 @@ namespace RimThreaded.RW_Patches
             //RimThreaded.currentInstance = __instance;
 
             if (!DebugSettings.fastEcology)
-            {
                 __instance.ticksGameInt++;
-            }
             else
-            {
                 __instance.ticksGameInt += 2000;
-            }
             Shader.SetGlobalFloat(ShaderPropertyIDs.GameSeconds, __instance.TicksGame.TicksToSeconds());
 
             RimThreaded.MainThreadWaitLoop(__instance);
 
-            if (DebugViewSettings.logHourlyScreenshot && Find.TickManager.TicksGame >= __instance.lastAutoScreenshot + 2500)
+            if (DebugViewSettings.logHourlyScreenshot &&
+                Find.TickManager.TicksGame >= __instance.lastAutoScreenshot + 2500)
             {
                 ScreenshotTaker.QueueSilentScreenshot();
                 __instance.lastAutoScreenshot = Find.TickManager.TicksGame / 2500 * 2500;
@@ -79,8 +75,6 @@ namespace RimThreaded.RW_Patches
                     __result = -1f;
                     return false;
             }
-
         }
-
     }
 }

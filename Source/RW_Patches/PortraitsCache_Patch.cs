@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using RimWorld;
-using Verse;
-using UnityEngine;
-using static RimWorld.PortraitsCache;
+﻿using RimWorld;
 
 namespace RimThreaded.RW_Patches
 {
@@ -11,8 +6,8 @@ namespace RimThreaded.RW_Patches
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(PortraitsCache);
-            Type patched = typeof(PortraitsCache_Patch);
+            var original = typeof(PortraitsCache);
+            var patched = typeof(PortraitsCache_Patch);
             /*
             RimThreadedHarmony.Prefix(original, patched, nameof(Clear));
             RimThreadedHarmony.Prefix(original, patched, nameof(GetOrCreateCachedPortraitsWithParams));
@@ -23,6 +18,5 @@ namespace RimThreaded.RW_Patches
             RimThreadedHarmony.Prefix(original, patched, nameof(SetDirty));
             */
         }
-        
     }
 }

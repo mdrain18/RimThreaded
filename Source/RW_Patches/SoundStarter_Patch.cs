@@ -6,43 +6,43 @@ using static System.Threading.Thread;
 
 namespace RimThreaded.RW_Patches
 {
-    class SoundStarter_Patch
+    internal class SoundStarter_Patch
     {
+        private static readonly Action<object[]> ActionPlayOneShot = parameters =>
+            ((SoundDef) parameters[0]).PlayOneShot(
+                (SoundInfo) parameters[1]);
+
+        private static readonly Action<object[]> ActionPlayOneShotOnCamera = parameters =>
+            ((SoundDef) parameters[0]).PlayOneShotOnCamera(
+                (Map) parameters[1]);
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(SoundStarter);
-            Type patched = typeof(SoundStarter_Patch);
+            var original = typeof(SoundStarter);
+            var patched = typeof(SoundStarter_Patch);
             RimThreadedHarmony.Prefix(original, patched, "PlayOneShot");
             RimThreadedHarmony.Prefix(original, patched, "PlayOneShotOnCamera");
         }
 
-        static readonly Action<object[]> ActionPlayOneShot = parameters =>
-            ((SoundDef)parameters[0]).PlayOneShot(
-                (SoundInfo)parameters[1]);
-
         public static bool PlayOneShot(SoundDef soundDef, SoundInfo info)
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
+            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo))
                 return true;
-            threadInfo.safeFunctionRequest = new object[] { ActionPlayOneShot, new object[] { soundDef, info } };
+            threadInfo.safeFunctionRequest = new object[] {ActionPlayOneShot, new object[] {soundDef, info}};
             mainThreadWaitHandle.Set();
             threadInfo.eventWaitStart.WaitOne();
             return false;
         }
-        static readonly Action<object[]> ActionPlayOneShotOnCamera = parameters =>
-            ((SoundDef)parameters[0]).PlayOneShotOnCamera(
-                (Map)parameters[1]);
 
         public static bool PlayOneShotOnCamera(SoundDef soundDef, Map onlyThisMap)
         {
-            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out ThreadInfo threadInfo))
+            if (!CurrentThread.IsBackground || !allWorkerThreads.TryGetValue(CurrentThread, out var threadInfo))
                 return true;
-            threadInfo.safeFunctionRequest = new object[] { ActionPlayOneShotOnCamera, new object[] { soundDef, onlyThisMap } };
+            threadInfo.safeFunctionRequest = new object[]
+                {ActionPlayOneShotOnCamera, new object[] {soundDef, onlyThisMap}};
             mainThreadWaitHandle.Set();
             threadInfo.eventWaitStart.WaitOne();
             return false;
         }
-
-
     }
 }

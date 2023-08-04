@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -9,12 +8,12 @@ using static HarmonyLib.AccessTools;
 
 namespace RimThreaded.RW_Patches
 {
-    class Thing_Patch
+    internal class Thing_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Thing);
-            Type patched = typeof(Thing_Patch);
+            var original = typeof(Thing);
+            var patched = typeof(Thing_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(get_Map));
             RimThreadedHarmony.Transpile(original, patched, nameof(TakeDamage));
         }
@@ -22,16 +21,16 @@ namespace RimThreaded.RW_Patches
         public static IEnumerable<CodeInstruction> TakeDamage(IEnumerable<CodeInstruction> instructions,
             ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            for (int i = 0; i < instructionsList.Count; i++)
+            var instructionsList = instructions.ToList();
+            for (var i = 0; i < instructionsList.Count; i++)
             {
-                CodeInstruction ci = instructionsList[i];
-                if (ci.opcode == OpCodes.Call && (MethodInfo)ci.operand == Method(typeof(Map), "get_MapHeld"))
+                var ci = instructionsList[i];
+                if (ci.opcode == OpCodes.Call && (MethodInfo) ci.operand == Method(typeof(Map), "get_MapHeld"))
                 {
                     yield return instructionsList[i++];
                     yield return instructionsList[i];
                     yield return new CodeInstruction(OpCodes.Ldloc_2);
-                    Label label = (Label)instructionsList[i + 13].operand;
+                    var label = (Label) instructionsList[i + 13].operand;
                     yield return new CodeInstruction(OpCodes.Brfalse, label);
                 }
                 else
@@ -59,7 +58,5 @@ namespace RimThreaded.RW_Patches
             //}
             return false;
         }
-
-
     }
 }

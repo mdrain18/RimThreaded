@@ -1,20 +1,19 @@
-﻿using RimWorld;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using RimWorld;
 
 namespace RimThreaded.RW_Patches
 {
-    class GoodwillSituationManager_Patch
+    internal class GoodwillSituationManager_Patch
     {
-
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(GoodwillSituationManager);
-            Type patched = typeof(GoodwillSituationManager_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(Recalculate), new Type[] { typeof(Faction), typeof(bool) });
+            var original = typeof(GoodwillSituationManager);
+            var patched = typeof(GoodwillSituationManager_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(Recalculate), new[] {typeof(Faction), typeof(bool)});
         }
 
-        public static bool Recalculate(GoodwillSituationManager __instance, Faction other, bool canSendHostilityChangedLetter)
+        public static bool Recalculate(GoodwillSituationManager __instance, Faction other,
+            bool canSendHostilityChangedLetter)
         {
             List<GoodwillSituationManager.CachedSituation> outSituations1;
             if (__instance.cachedData.TryGetValue(other, out outSituations1))
@@ -23,13 +22,14 @@ namespace RimThreaded.RW_Patches
             }
             else
             {
-                List<GoodwillSituationManager.CachedSituation> outSituations2 = new List<GoodwillSituationManager.CachedSituation>();
+                var outSituations2 = new List<GoodwillSituationManager.CachedSituation>();
                 __instance.Recalculate(other, outSituations2);
                 lock (__instance.cachedData)
                 {
                     __instance.cachedData.Add(other, outSituations2);
                 }
             }
+
             __instance.CheckHostilityChanged(other, canSendHostilityChangedLetter);
             return false;
         }

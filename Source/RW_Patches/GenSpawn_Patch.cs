@@ -1,12 +1,10 @@
-﻿
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class GenSpawn_Patch
+    internal class GenSpawn_Patch
     {
         private static readonly Type Original = typeof(GenSpawn);
         private static readonly Type Patched = typeof(GenSpawn_Patch);
@@ -16,19 +14,17 @@ namespace RimThreaded.RW_Patches
             RimThreadedHarmony.Prefix(Original, Patched, "WipeExistingThings");
         }
 
-        public static bool WipeExistingThings(IntVec3 thingPos, Rot4 thingRot, BuildableDef thingDef, Map map, DestroyMode mode)
+        public static bool WipeExistingThings(IntVec3 thingPos, Rot4 thingRot, BuildableDef thingDef, Map map,
+            DestroyMode mode)
         {
-            foreach (IntVec3 item in GenAdj.CellsOccupiedBy(thingPos, thingRot, thingDef.Size))
+            foreach (var item in GenAdj.CellsOccupiedBy(thingPos, thingRot, thingDef.Size))
             {
-                List<Thing> list = map.thingGrid.ThingsAt(item).ToList();
-                for (int index = 0; index < list.Count; index++)
+                var list = map.thingGrid.ThingsAt(item).ToList();
+                for (var index = 0; index < list.Count; index++)
                 {
-                    Thing item2 = list[index];
+                    var item2 = list[index];
                     if (item2 == null) continue;
-                    if (GenSpawn.SpawningWipes(thingDef, item2.def))
-                    {
-                        item2.Destroy(mode);
-                    }
+                    if (GenSpawn.SpawningWipes(thingDef, item2.def)) item2.Destroy(mode);
                 }
             }
 

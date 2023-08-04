@@ -7,27 +7,28 @@ using Verse.AI;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class JobGiver_Work_Patch
     {
+        private static readonly HashSet<WorkGiverDef> workGiversForClosestThingReachable2 = new HashSet<WorkGiverDef>();
 
-        static readonly HashSet<WorkGiverDef> workGiversForClosestThingReachable2 = new HashSet<WorkGiverDef>();
-        static readonly HashSet<ThingRequestGroup> thingRequestGroupsCached = new HashSet<ThingRequestGroup>{
-                //ThingRequestGroup.Seed,
-                //ThingRequestGroup.Blueprint,
-                //ThingRequestGroup.Refuelable,
-                //ThingRequestGroup.Transporter,
-                //ThingRequestGroup.BuildingFrame,
-                //ThingRequestGroup.PotentialBillGiver,
-                //ThingRequestGroup.Filth
-                //,ThingRequestGroup.BuildingArtificial
+        private static readonly HashSet<ThingRequestGroup> thingRequestGroupsCached = new HashSet<ThingRequestGroup>
+        {
+            //ThingRequestGroup.Seed,
+            //ThingRequestGroup.Blueprint,
+            //ThingRequestGroup.Refuelable,
+            //ThingRequestGroup.Transporter,
+            //ThingRequestGroup.BuildingFrame,
+            //ThingRequestGroup.PotentialBillGiver,
+            //ThingRequestGroup.Filth
+            //,ThingRequestGroup.BuildingArtificial
         };
-        static WorkGiverDef haulGeneral;
+
+        private static WorkGiverDef haulGeneral;
 
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(JobGiver_Work);
-            Type patched = typeof(JobGiver_Work_Patch);
+            var original = typeof(JobGiver_Work);
+            var patched = typeof(JobGiver_Work_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(TryIssueJobPackage));
             BuildWorkGiverList(); //TODO: Move to initialize?
         }
@@ -37,7 +38,7 @@ namespace RimThreaded.RW_Patches
         {
             //Use method ClosestThingReachable2 for these workGiverDefs
             //ClosestThingReachable2 is same as ClosestThingReachable, except it checks validator before canreach
-            HashSet<string> workGivers = new HashSet<string>
+            var workGivers = new HashSet<string>
             {
                 "DoctorFeedAnimals",
                 "DoctorFeedHumanlikes",
@@ -58,14 +59,13 @@ namespace RimThreaded.RW_Patches
                 "TakeToPen",
                 "RebalanceAnimalsInPens"
             };
-            foreach (WorkGiverDef workGiverDef in DefDatabase<WorkGiverDef>.AllDefs)
+            foreach (var workGiverDef in DefDatabase<WorkGiverDef>.AllDefs)
             {
                 if (workGivers.Contains(workGiverDef.defName))
                     workGiversForClosestThingReachable2.Add(workGiverDef);
                 if (workGiverDef.defName.Equals("HaulGeneral"))
                     haulGeneral = workGiverDef;
             }
-
         }
 
 #if DEBUG
@@ -75,7 +75,8 @@ namespace RimThreaded.RW_Patches
         static Stopwatch s2;
 #endif
 
-        public static bool TryIssueJobPackage(JobGiver_Work __instance, ref ThinkResult __result, Pawn pawn, JobIssueParams jobParams)
+        public static bool TryIssueJobPackage(JobGiver_Work __instance, ref ThinkResult __result, Pawn pawn,
+            JobIssueParams jobParams)
         {
 #if DEBUG
             if (s1 == null)
@@ -87,13 +88,14 @@ namespace RimThreaded.RW_Patches
 #endif
             if (__instance.emergency && pawn.mindState.priorityWork.IsPrioritized)
             {
-                List<WorkGiverDef> workGiversByPriority = pawn.mindState.priorityWork.WorkGiver.workType.workGiversByPriority;
-                for (int i = 0; i < workGiversByPriority.Count; i++)
+                var workGiversByPriority = pawn.mindState.priorityWork.WorkGiver.workType.workGiversByPriority;
+                for (var i = 0; i < workGiversByPriority.Count; i++)
                 {
-                    WorkGiver worker = workGiversByPriority[i].Worker;
+                    var worker = workGiversByPriority[i].Worker;
                     if (__instance.WorkGiversRelated(pawn.mindState.priorityWork.WorkGiver, worker.def))
                     {
-                        Job job = GiverTryGiveJobPrioritized(__instance, pawn, worker, pawn.mindState.priorityWork.Cell);
+                        var job = GiverTryGiveJobPrioritized(__instance, pawn, worker,
+                            pawn.mindState.priorityWork.Cell);
                         if (job != null)
                         {
                             job.playerForced = true;
@@ -103,11 +105,15 @@ namespace RimThreaded.RW_Patches
                         }
                     }
                 }
+
                 pawn.mindState.priorityWork.Clear();
             }
-            List<WorkGiver> list = !__instance.emergency ? pawn.workSettings.WorkGiversInOrderNormal : pawn.workSettings.WorkGiversInOrderEmergency;
-            int num = -999;
-            TargetInfo bestTargetOfLastPriority = TargetInfo.Invalid;
+
+            var list = !__instance.emergency
+                ? pawn.workSettings.WorkGiversInOrderNormal
+                : pawn.workSettings.WorkGiversInOrderEmergency;
+            var num = -999;
+            var bestTargetOfLastPriority = TargetInfo.Invalid;
             WorkGiver_Scanner scannerWhoProvidedTarget = null;
             WorkGiver_Scanner scanner;
             IntVec3 pawnPosition;
@@ -116,26 +122,20 @@ namespace RimThreaded.RW_Patches
             bool prioritized;
             bool allowUnreachable;
             Danger maxPathDanger;
-            for (int j = 0; j < list.Count; j++)
+            for (var j = 0; j < list.Count; j++)
             {
-                int retries = 3;
-                bool allowRetry = true;
+                var retries = 3;
+                var allowRetry = true;
                 while (allowRetry && retries > 0)
                 {
                     allowRetry = false;
-                    WorkGiver workGiver = list[j];
-                    if (workGiver.def.priorityInType != num && bestTargetOfLastPriority.IsValid)
-                    {
-                        break;
-                    }
-                    if (!__instance.PawnCanUseWorkGiver(pawn, workGiver))
-                    {
-                        continue;
-                    }
-                    ThingRequest potentialWorkThingRequest = ThingRequest.ForUndefined();
+                    var workGiver = list[j];
+                    if (workGiver.def.priorityInType != num && bestTargetOfLastPriority.IsValid) break;
+                    if (!__instance.PawnCanUseWorkGiver(pawn, workGiver)) continue;
+                    var potentialWorkThingRequest = ThingRequest.ForUndefined();
                     try
                     {
-                        Job job2 = workGiver.NonScanJob(pawn);
+                        var job2 = workGiver.NonScanJob(pawn);
                         if (job2 != null)
                         {
                             __result = new ThinkResult(job2, __instance, workGiver.def.tagToGive);
@@ -148,70 +148,81 @@ namespace RimThreaded.RW_Patches
 #endif
                             return false;
                         }
+
                         scanner = workGiver as WorkGiver_Scanner;
 
                         if (scanner != null)
                         {
                             if (scanner.def.scanThings)
                             {
-                                potentialWorkThingRequest = ((WorkGiver_Scanner)workGiver).PotentialWorkThingRequest;
+                                potentialWorkThingRequest = ((WorkGiver_Scanner) workGiver).PotentialWorkThingRequest;
                                 Predicate<Thing> validator;
                                 if (scanner is WorkGiver_DoBill workGiver_DoBill)
-                                {
-                                    validator = (t) => !t.IsForbidden(pawn) && WorkGiver_Scanner_Patch.HasJobOnThing(workGiver_DoBill, pawn, t);
-                                }
+                                    validator = t =>
+                                        !t.IsForbidden(pawn) &&
+                                        WorkGiver_Scanner_Patch.HasJobOnThing(workGiver_DoBill, pawn, t);
                                 else
-                                {
-                                    validator = (t) => !t.IsForbidden(pawn) && scanner.HasJobOnThing(pawn, t);
-                                }
-                                IEnumerable<Thing> enumerable = scanner.PotentialWorkThingsGlobal(pawn);
+                                    validator = t => !t.IsForbidden(pawn) && scanner.HasJobOnThing(pawn, t);
+                                var enumerable = scanner.PotentialWorkThingsGlobal(pawn);
                                 Thing thing;
                                 if (scanner.Prioritized)
                                 {
-                                    IEnumerable<Thing> enumerable2 = enumerable;
+                                    var enumerable2 = enumerable;
                                     if (enumerable2 == null)
-                                    {
-                                        enumerable2 = pawn.Map.listerThings.ThingsMatching(scanner.PotentialWorkThingRequest);
-                                    }
-                                    thing = !scanner.AllowUnreachable ?
-                                        GenClosest.ClosestThing_Global_Reachable(pawn.Position, pawn.Map, enumerable2, scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator, (x) => scanner.GetPriority(pawn, x)) :
-                                        GenClosest.ClosestThing_Global(pawn.Position, enumerable2, 99999f, validator, (x) => scanner.GetPriority(pawn, x));
+                                        enumerable2 =
+                                            pawn.Map.listerThings.ThingsMatching(scanner.PotentialWorkThingRequest);
+                                    thing = !scanner.AllowUnreachable
+                                        ? GenClosest.ClosestThing_Global_Reachable(pawn.Position, pawn.Map, enumerable2,
+                                            scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)),
+                                            9999f, validator, x => scanner.GetPriority(pawn, x))
+                                        : GenClosest.ClosestThing_Global(pawn.Position, enumerable2, 99999f, validator,
+                                            x => scanner.GetPriority(pawn, x));
                                 }
                                 else if (scanner.AllowUnreachable)
                                 {
-                                    IEnumerable<Thing> enumerable3 = enumerable;
+                                    var enumerable3 = enumerable;
                                     if (enumerable3 == null)
-                                    {
-                                        enumerable3 = pawn.Map.listerThings.ThingsMatching(scanner.PotentialWorkThingRequest);
-                                    }
-                                    thing = GenClosest.ClosestThing_Global(pawn.Position, enumerable3, 99999f, validator);
+                                        enumerable3 =
+                                            pawn.Map.listerThings.ThingsMatching(scanner.PotentialWorkThingRequest);
+                                    thing = GenClosest.ClosestThing_Global(pawn.Position, enumerable3, 99999f,
+                                        validator);
                                 }
                                 else
                                 {
                                     if (workGiver.def == haulGeneral)
-                                    {
-                                        thing = HaulingCache.ClosestThingReachable(pawn, scanner, pawn.Map, scanner.PotentialWorkThingRequest, scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator, enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch, enumerable != null);
-                                    }
+                                        thing = HaulingCache.ClosestThingReachable(pawn, scanner, pawn.Map,
+                                            scanner.PotentialWorkThingRequest, scanner.PathEndMode,
+                                            TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator,
+                                            enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch,
+                                            enumerable != null);
                                     else if (scanner.PotentialWorkThingRequest.singleDef == null &&
-                                        thingRequestGroupsCached.Contains(scanner.PotentialWorkThingRequest.group))
-                                    {
-                                        thing = GenClosest_Patch.ClosestThingRequestGroup(pawn, scanner, pawn.Map, scanner.PotentialWorkThingRequest, scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator, enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch, enumerable != null);
-                                    }
+                                             thingRequestGroupsCached.Contains(scanner.PotentialWorkThingRequest.group))
+                                        thing = GenClosest_Patch.ClosestThingRequestGroup(pawn, scanner, pawn.Map,
+                                            scanner.PotentialWorkThingRequest, scanner.PathEndMode,
+                                            TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator,
+                                            enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch,
+                                            enumerable != null);
                                     else if (workGiversForClosestThingReachable2.Contains(workGiver.def))
-                                    {
-                                        thing = GenClosest_Patch.ClosestThingReachable2(pawn.Position, pawn.Map, scanner.PotentialWorkThingRequest, scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator, enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch, enumerable != null);
-                                    }
+                                        thing = GenClosest_Patch.ClosestThingReachable2(pawn.Position, pawn.Map,
+                                            scanner.PotentialWorkThingRequest, scanner.PathEndMode,
+                                            TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator,
+                                            enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch,
+                                            enumerable != null);
                                     else
-                                    {
-                                        thing = GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, scanner.PotentialWorkThingRequest, scanner.PathEndMode, TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator, enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch, enumerable != null);
-                                    }
+                                        thing = GenClosest.ClosestThingReachable(pawn.Position, pawn.Map,
+                                            scanner.PotentialWorkThingRequest, scanner.PathEndMode,
+                                            TraverseParms.For(pawn, scanner.MaxPathDanger(pawn)), 9999f, validator,
+                                            enumerable, 0, scanner.MaxRegionsToScanBeforeGlobalSearch,
+                                            enumerable != null);
                                 }
+
                                 if (thing != null)
                                 {
                                     bestTargetOfLastPriority = thing;
                                     scannerWhoProvidedTarget = scanner;
                                 }
                             }
+
                             if (scanner.def.scanCells)
                             {
                                 pawnPosition = pawn.Position;
@@ -223,7 +234,8 @@ namespace RimThreaded.RW_Patches
                                 IEnumerable<IntVec3> enumerable4;
                                 if (scanner is WorkGiver_GrowerSow workGiver_Grower)
                                 {
-                                    IntVec3 bestCell = WorkGiver_Grower_Patch.ClosestLocationReachable(workGiver_Grower, pawn);
+                                    var bestCell =
+                                        WorkGiver_Grower_Patch.ClosestLocationReachable(workGiver_Grower, pawn);
                                     if (bestCell.IsValid)
                                     {
                                         bestTargetOfLastPriority = new TargetInfo(bestCell, pawn.Map);
@@ -232,7 +244,9 @@ namespace RimThreaded.RW_Patches
                                 }
                                 else if (scanner is WorkGiver_GrowerHarvest workGiver_GrowerHarvest)
                                 {
-                                    IntVec3 bestCell = WorkGiver_GrowerHarvest_Patch.ClosestLocationReachable(workGiver_GrowerHarvest, pawn);
+                                    var bestCell =
+                                        WorkGiver_GrowerHarvest_Patch.ClosestLocationReachable(workGiver_GrowerHarvest,
+                                            pawn);
                                     if (bestCell.IsValid)
                                     {
                                         bestTargetOfLastPriority = new TargetInfo(bestCell, pawn.Map);
@@ -244,43 +258,30 @@ namespace RimThreaded.RW_Patches
                                     enumerable4 = scanner.PotentialWorkCellsGlobal(pawn);
                                     IList<IntVec3> list2;
                                     if ((list2 = enumerable4 as IList<IntVec3>) != null)
-                                    {
-                                        for (int k = 0; k < list2.Count; k++)
-                                        {
+                                        for (var k = 0; k < list2.Count; k++)
                                             ProcessCell(list2[k]);
-                                        }
-                                    }
                                     else
-                                    {
-                                        foreach (IntVec3 item in enumerable4)
-                                        {
+                                        foreach (var item in enumerable4)
                                             ProcessCell(item);
-                                        }
-                                    }
                                 }
-
                             }
                         }
+
                         void ProcessCell(IntVec3 c)
                         {
                             float newDistanceSquared = (c - pawnPosition).LengthHorizontalSquared;
-                            float newPriority = 0f;
+                            var newPriority = 0f;
 
                             if (prioritized)
                             {
                                 newPriority = scanner.GetPriority(pawn, c);
-                                if (newPriority < bestPriority)
-                                {
-                                    return;
-                                }
+                                if (newPriority < bestPriority) return;
                             }
 
-                            if (newDistanceSquared < closestDistSquared && !c.IsForbidden(pawn) && scanner.HasJobOnCell(pawn, c))
+                            if (newDistanceSquared < closestDistSquared && !c.IsForbidden(pawn) &&
+                                scanner.HasJobOnCell(pawn, c))
                             {
-                                if (!allowUnreachable && !pawn.CanReach(c, scanner.PathEndMode, maxPathDanger))
-                                {
-                                    return;
-                                }
+                                if (!allowUnreachable && !pawn.CanReach(c, scanner.PathEndMode, maxPathDanger)) return;
 
                                 bestTargetOfLastPriority = new TargetInfo(c, pawn.Map);
                                 scannerWhoProvidedTarget = scanner;
@@ -291,14 +292,15 @@ namespace RimThreaded.RW_Patches
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(string.Concat(pawn, " threw exception in WorkGiver ", workGiver.def.defName, ": ", ex.ToString()));
+                        Log.Error(string.Concat(pawn, " threw exception in WorkGiver ", workGiver.def.defName, ": ",
+                            ex.ToString()));
                     }
-                    finally
-                    {
-                    }
+
                     if (bestTargetOfLastPriority.IsValid)
                     {
-                        Job job3 = !bestTargetOfLastPriority.HasThing ? scannerWhoProvidedTarget.JobOnCell(pawn, bestTargetOfLastPriority.Cell) : scannerWhoProvidedTarget.JobOnThing(pawn, bestTargetOfLastPriority.Thing);
+                        var job3 = !bestTargetOfLastPriority.HasThing
+                            ? scannerWhoProvidedTarget.JobOnCell(pawn, bestTargetOfLastPriority.Cell)
+                            : scannerWhoProvidedTarget.JobOnThing(pawn, bestTargetOfLastPriority.Thing);
                         if (job3 != null)
                         {
                             job3.workGiverDef = scannerWhoProvidedTarget.def;
@@ -322,92 +324,83 @@ namespace RimThreaded.RW_Patches
 #endif
                             return false;
                         }
+
                         //If this was a cached plant job, deregister it and check if it is still valid to be registered
                         if (scannerWhoProvidedTarget is WorkGiver_GrowerSow)
                         {
-                            Map map = pawn.Map;
-                            IntVec3 cell = bestTargetOfLastPriority.Cell;
+                            var map = pawn.Map;
+                            var cell = bestTargetOfLastPriority.Cell;
                             JumboCell.ReregisterObject(map, cell, RimThreaded.plantSowing_Cache);
                         }
                         //HACK - I know. I'm awful.
                         //Log.ErrorOnce(string.Concat(scannerWhoProvidedTarget, " provided target ", bestTargetOfLastPriority, " but yielded no actual job for pawn ", pawn, ". The CanGiveJob and JobOnX methods may not be synchronized."), 6112651);
 
                         if (retries <= 1)
-                        {
                             if (Prefs.LogVerbose)
-                            {
-                                Log.Warning(string.Concat(scannerWhoProvidedTarget, " provided target ", bestTargetOfLastPriority, " but yielded no actual job for pawn ", pawn, ". The CanGiveJob and JobOnX methods may not be synchronized."));
-                            }
-                        }
+                                Log.Warning(string.Concat(scannerWhoProvidedTarget, " provided target ",
+                                    bestTargetOfLastPriority, " but yielded no actual job for pawn ", pawn,
+                                    ". The CanGiveJob and JobOnX methods may not be synchronized."));
                         allowRetry = true;
                     }
+
                     num = workGiver.def.priorityInType;
 
                     retries--;
                 }
             }
+
             __result = ThinkResult.NoJob;
             return false;
         }
 
-        private static Job GiverTryGiveJobPrioritized(JobGiver_Work __instance, Pawn pawn, WorkGiver giver, IntVec3 cell)
+        private static Job GiverTryGiveJobPrioritized(JobGiver_Work __instance, Pawn pawn, WorkGiver giver,
+            IntVec3 cell)
         {
-            if (!__instance.PawnCanUseWorkGiver(pawn, giver))
-            {
-                return null;
-            }
+            if (!__instance.PawnCanUseWorkGiver(pawn, giver)) return null;
             try
             {
-                Job job = giver.NonScanJob(pawn);
-                if (job != null)
-                {
-                    return job;
-                }
-                WorkGiver_Scanner scanner = giver as WorkGiver_Scanner;
+                var job = giver.NonScanJob(pawn);
+                if (job != null) return job;
+                var scanner = giver as WorkGiver_Scanner;
                 if (scanner != null)
                 {
                     if (giver.def.scanThings)
                     {
                         Predicate<Thing> predicate;
                         if (scanner is WorkGiver_DoBill workGiver_DoBill)
-                        {
-                            predicate = (t) => !t.IsForbidden(pawn) && WorkGiver_Scanner_Patch.HasJobOnThing(workGiver_DoBill, pawn, t);
-                        }
+                            predicate = t =>
+                                !t.IsForbidden(pawn) &&
+                                WorkGiver_Scanner_Patch.HasJobOnThing(workGiver_DoBill, pawn, t);
                         else
-                        {
-                            predicate = (t) => !t.IsForbidden(pawn) && scanner.HasJobOnThing(pawn, t);
-                        }
+                            predicate = t => !t.IsForbidden(pawn) && scanner.HasJobOnThing(pawn, t);
 
-                        List<Thing> thingList = cell.GetThingList(pawn.Map);
-                        for (int i = 0; i < thingList.Count; i++)
+                        var thingList = cell.GetThingList(pawn.Map);
+                        for (var i = 0; i < thingList.Count; i++)
                         {
-                            Thing thing = thingList[i];
+                            var thing = thingList[i];
                             if (scanner.PotentialWorkThingRequest.Accepts(thing) && predicate(thing))
                             {
-                                Job job2 = scanner.JobOnThing(pawn, thing);
-                                if (job2 != null)
-                                {
-                                    job2.workGiverDef = giver.def;
-                                }
+                                var job2 = scanner.JobOnThing(pawn, thing);
+                                if (job2 != null) job2.workGiverDef = giver.def;
                                 return job2;
                             }
                         }
                     }
+
                     if (giver.def.scanCells && !cell.IsForbidden(pawn) && scanner.HasJobOnCell(pawn, cell))
                     {
-                        Job job3 = scanner.JobOnCell(pawn, cell);
-                        if (job3 != null)
-                        {
-                            job3.workGiverDef = giver.def;
-                        }
+                        var job3 = scanner.JobOnCell(pawn, cell);
+                        if (job3 != null) job3.workGiverDef = giver.def;
                         return job3;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(string.Concat(pawn, " threw exception in GiverTryGiveJobTargeted on WorkGiver ", giver.def.defName, ": ", ex.ToString()));
+                Log.Error(string.Concat(pawn, " threw exception in GiverTryGiveJobTargeted on WorkGiver ",
+                    giver.def.defName, ": ", ex.ToString()));
             }
+
             return null;
         }
     }

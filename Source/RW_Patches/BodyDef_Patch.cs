@@ -1,21 +1,19 @@
-﻿using RimThreaded.RW_Patches;
+﻿using System.Collections.Generic;
 using RimThreaded;
-using System;
 using Verse;
-using System.Collections.Generic;
 
 public class BodyDef_Patch
 {
     internal static void RunDestructivePatches()
     {
-        Type original = typeof(BodyDef);
-        Type patched = typeof(BodyDef_Patch);
+        var original = typeof(BodyDef);
+        var patched = typeof(BodyDef_Patch);
         RimThreadedHarmony.Prefix(original, patched, nameof(GetPartsWithTag));
     }
 
     public static bool GetPartsWithTag(BodyDef __instance, ref List<BodyPartRecord> __result, BodyPartTagDef tag)
     {
-        Dictionary<BodyPartTagDef, List<BodyPartRecord>> cachedPartsByTag = __instance.cachedPartsByTag;
+        var cachedPartsByTag = __instance.cachedPartsByTag;
 
         if (cachedPartsByTag.TryGetValue(tag, out __result))
             return false;
@@ -24,19 +22,17 @@ public class BodyDef_Patch
         {
             if (cachedPartsByTag.TryGetValue(tag, out __result))
                 return false;
-            List<BodyPartRecord> AllParts = __instance.AllParts;
+            var AllParts = __instance.AllParts;
             __result = new List<BodyPartRecord>();
-            for (int i = 0; i < AllParts.Count; i++)
+            for (var i = 0; i < AllParts.Count; i++)
             {
-                BodyPartRecord bodyPartRecord = AllParts[i];
-                if (bodyPartRecord.def.tags.Contains(tag))
-                {
-                    __result.Add(bodyPartRecord);
-                }
+                var bodyPartRecord = AllParts[i];
+                if (bodyPartRecord.def.tags.Contains(tag)) __result.Add(bodyPartRecord);
             }
+
             cachedPartsByTag[tag] = __result;
         }
+
         return false;
     }
-
 }

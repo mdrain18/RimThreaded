@@ -1,20 +1,21 @@
-﻿using HarmonyLib;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Verse;
-using System.Reflection.Emit;
-using static HarmonyLib.AccessTools;
 using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
+using Verse;
+using static HarmonyLib.AccessTools;
 
 namespace RimThreaded.Mod_Patches
 {
     public class Verb_LaunchProjectileCE_Transpile
     {
-        public static IEnumerable<CodeInstruction> CanHitFromCellIgnoringRange(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> CanHitFromCellIgnoringRange(
+            IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
         {
             // FULL REWRITE 
             //Create LOCAL VAR Thing
-            LocalBuilder thing = iLGenerator.DeclareLocal(typeof(Thing));
+            var thing = iLGenerator.DeclareLocal(typeof(Thing));
 
 
             //IntVec3 cell = targ.Cell;
@@ -35,12 +36,13 @@ namespace RimThreaded.Mod_Patches
             yield return new CodeInstruction(OpCodes.Ldarg_1);
             yield return new CodeInstruction(OpCodes.Ldloc_0);
             yield return new CodeInstruction(OpCodes.Ldloc, thing.LocalIndex);
-            yield return new CodeInstruction(OpCodes.Call, Method(CombatExteneded_Patch.combatExtendedVerb_LaunchProjectileCE, "CanHitCellFromCellIgnoringRange"));
-            Label label25 = iLGenerator.DefineLabel();
+            yield return new CodeInstruction(OpCodes.Call,
+                Method(CombatExteneded_Patch.combatExtendedVerb_LaunchProjectileCE, "CanHitCellFromCellIgnoringRange"));
+            var label25 = iLGenerator.DefineLabel();
             yield return new CodeInstruction(OpCodes.Brfalse_S, label25);
 
             yield return new CodeInstruction(OpCodes.Ldloc, thing.LocalIndex);
-            Label label20 = iLGenerator.DefineLabel();
+            var label20 = iLGenerator.DefineLabel();
             yield return new CodeInstruction(OpCodes.Brfalse_S, label20);
 
             yield return new CodeInstruction(OpCodes.Ldloc, thing.LocalIndex);
@@ -51,7 +53,7 @@ namespace RimThreaded.Mod_Patches
             yield return new CodeInstruction(OpCodes.Bne_Un_S, label25);
 
             //{ goodDest = cell;
-            CodeInstruction codeInstruction = new CodeInstruction(OpCodes.Ldarg_3);
+            var codeInstruction = new CodeInstruction(OpCodes.Ldarg_3);
             codeInstruction.labels.Add(label20);
             yield return codeInstruction;
             yield return new CodeInstruction(OpCodes.Ldloc_0);
@@ -73,17 +75,18 @@ namespace RimThreaded.Mod_Patches
             yield return new CodeInstruction(OpCodes.Ret);
         }
 
-        public static IEnumerable<CodeInstruction> TryFindCEShootLineFromTo(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> TryFindCEShootLineFromTo(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            LocalBuilder tempLeanShootSources = iLGenerator.DeclareLocal(typeof(List<IntVec3>));
-            int i = 0;
-            bool matchFound = false;
+            var instructionsList = instructions.ToList();
+            var tempLeanShootSources = iLGenerator.DeclareLocal(typeof(List<IntVec3>));
+            var i = 0;
+            var matchFound = false;
             while (i < instructionsList.Count)
             {
                 if (i > 1 &&
                     instructionsList[i - 2].opcode == OpCodes.Callvirt &&
-                    (MethodInfo)instructionsList[i - 2].operand == Method(typeof(Verb), "get_CasterIsPawn"))
+                    (MethodInfo) instructionsList[i - 2].operand == Method(typeof(Verb), "get_CasterIsPawn"))
                 {
                     matchFound = true;
                     instructionsList[i].opcode = OpCodes.Newobj;
@@ -91,10 +94,12 @@ namespace RimThreaded.Mod_Patches
                     yield return instructionsList[i];
                     i++;
                     yield return new CodeInstruction(OpCodes.Stloc, tempLeanShootSources.LocalIndex);
-                    yield return new CodeInstruction(OpCodes.Ldarg_1, null);
+                    yield return new CodeInstruction(OpCodes.Ldarg_1);
                 }
-                if ( instructionsList[i].opcode == OpCodes.Ldsfld &&
-                    (FieldInfo)instructionsList[i].operand == Field(CombatExteneded_Patch.combatExtendedVerb_LaunchProjectileCE, "tempLeanShootSources"))
+
+                if (instructionsList[i].opcode == OpCodes.Ldsfld &&
+                    (FieldInfo) instructionsList[i].operand ==
+                    Field(CombatExteneded_Patch.combatExtendedVerb_LaunchProjectileCE, "tempLeanShootSources"))
                 {
                     matchFound = true;
                     instructionsList[i].opcode = OpCodes.Ldloc;
@@ -108,10 +113,8 @@ namespace RimThreaded.Mod_Patches
                     i++;
                 }
             }
-            if (!matchFound)
-            {
-                Log.Error("IL code instructions not found");
-            }
+
+            if (!matchFound) Log.Error("IL code instructions not found");
         }
     }
 }

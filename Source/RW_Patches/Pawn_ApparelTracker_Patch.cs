@@ -1,37 +1,40 @@
-﻿using HarmonyLib;
-using RimWorld;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using HarmonyLib;
+using RimWorld;
 
 namespace RimThreaded.RW_Patches
 {
-    class Pawn_ApparelTracker_Patch
+    internal class Pawn_ApparelTracker_Patch
     {
         [ThreadStatic] public static List<Apparel> tmpApparel = new List<Apparel>();
+
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Pawn_ApparelTracker);
-            Type patched = typeof(Pawn_ApparelTracker_Patch);
+            var original = typeof(Pawn_ApparelTracker);
+            var patched = typeof(Pawn_ApparelTracker_Patch);
             //RimThreadedHarmony.Prefix(original, patched, nameof(Notify_LostBodyPart));
             RimThreadedHarmony.Transpile(original, patched, nameof(Notify_LostBodyPart));
         }
-        public static IEnumerable<CodeInstruction> Notify_LostBodyPart(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+
+        public static IEnumerable<CodeInstruction> Notify_LostBodyPart(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> codes = instructions.ToList();
-            for (int i = 0; i < codes.Count; i++)
+            var codes = instructions.ToList();
+            for (var i = 0; i < codes.Count; i++)
             {
-                CodeInstruction code = codes[i];
+                var code = codes[i];
                 if (code.opcode == OpCodes.Stloc_2)
                 {
                     yield return code;
-                    for (int j = i + 1; j < codes.Count; j++)
+                    for (var j = i + 1; j < codes.Count; j++)
                     {
-                        CodeInstruction tempCode = codes[j];
+                        var tempCode = codes[j];
                         if (tempCode.opcode == OpCodes.Brtrue_S)
                         {
-                            Label jumpLabel = (Label)tempCode.operand;
+                            var jumpLabel = (Label) tempCode.operand;
                             yield return new CodeInstruction(OpCodes.Ldloc_2);
                             yield return new CodeInstruction(OpCodes.Brfalse_S, jumpLabel);
                             break;
@@ -58,6 +61,5 @@ namespace RimThreaded.RW_Patches
         //    }
         //    return false;
         //}
-
     }
 }

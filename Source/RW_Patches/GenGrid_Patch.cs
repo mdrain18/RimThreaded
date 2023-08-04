@@ -1,16 +1,16 @@
-﻿using System;
-using Verse;
+﻿using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class GenGrid_Patch
+    internal class GenGrid_Patch
     {
         internal static void RunNonDestructivePatches()
         {
-            Type original = typeof(GenGrid);
-            Type patched = typeof(GenGrid_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(InBounds), new Type[] { typeof(IntVec3), typeof(Map) }, false);
+            var original = typeof(GenGrid);
+            var patched = typeof(GenGrid_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(InBounds), new[] {typeof(IntVec3), typeof(Map)}, false);
         }
+
         public static bool InBounds(ref bool __result, IntVec3 c, Map map)
         {
             if (map == null)
@@ -18,6 +18,7 @@ namespace RimThreaded.RW_Patches
                 __result = false;
                 return false;
             }
+
             return true;
         }
     }

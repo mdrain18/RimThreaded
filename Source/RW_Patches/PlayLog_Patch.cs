@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class PlayLog_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(PlayLog);
-            Type patched = typeof(PlayLog_Patch);
+            var original = typeof(PlayLog);
+            var patched = typeof(PlayLog_Patch);
             RimThreadedHarmony.Prefix(original, patched, "Add");
             RimThreadedHarmony.Prefix(original, patched, "RemoveEntry");
             //RimThreadedHarmony.Prefix(original, patched, "AnyEntryConcerns");
@@ -20,14 +18,12 @@ namespace RimThreaded.RW_Patches
         {
             lock (__instance)
             {
-                List<LogEntry> newEntries = new List<LogEntry>(__instance.entries);
+                var newEntries = new List<LogEntry>(__instance.entries);
                 newEntries.Insert(0, entry);
-                while (newEntries.Count > 150)
-                {
-                    newEntries.RemoveAt(newEntries.Count - 1);
-                }
+                while (newEntries.Count > 150) newEntries.RemoveAt(newEntries.Count - 1);
                 __instance.entries = newEntries;
             }
+
             return false;
         }
 
@@ -35,10 +31,11 @@ namespace RimThreaded.RW_Patches
         {
             lock (__instance)
             {
-                List<LogEntry> newEntries = new List<LogEntry>(__instance.entries);
+                var newEntries = new List<LogEntry>(__instance.entries);
                 newEntries.Remove(entry);
                 __instance.entries = newEntries;
             }
+
             return false;
         }
         /*

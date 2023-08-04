@@ -9,7 +9,7 @@ namespace RimThreaded.RW_Patches
 
         public static T Get()
         {
-            return !FreeItems.TryPop(out T freeItem) ? new T() : freeItem;
+            return !FreeItems.TryPop(out var freeItem) ? new T() : freeItem;
         }
 
         public static void Return(T item)

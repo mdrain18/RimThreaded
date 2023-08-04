@@ -12,23 +12,24 @@ namespace RimThreaded.Mod_Patches
 {
     public class GeneratePawns_Patch_Transpile
     {
-        public static IEnumerable<CodeInstruction> Listener(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Listener(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> l = instructions.ToList();
-            bool match = false;
+            var l = instructions.ToList();
+            var match = false;
 
-                
+
             //Replacement Instructions
-            CodeInstruction loadToken = new CodeInstruction(OpCodes.Ldtoken, typeof(Texture2D).GetTypeInfo());
-            CodeInstruction resolveToken = new CodeInstruction(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle"));
+            var loadToken = new CodeInstruction(OpCodes.Ldtoken, typeof(Texture2D).GetTypeInfo());
+            var resolveToken = new CodeInstruction(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle"));
 
 
-            for (int x = 0; x < l.Count; x++)
+            for (var x = 0; x < l.Count; x++)
             {
-                CodeInstruction i = l[x];
+                var i = l[x];
 
                 if (i.opcode == OpCodes.Call
-                    && (MethodInfo)i.operand == TargetMethodHelper())
+                    && (MethodInfo) i.operand == TargetMethodHelper())
                 {
                     match = true;
 
@@ -36,26 +37,23 @@ namespace RimThreaded.Mod_Patches
 
                     l.Insert(x, resolveToken);
                     l.Insert(x, loadToken);
-                    
-
                 }
+
                 yield return l[x];
             }
-            if (!match)
-            {
-                Log.Error("No IL Instruction found for PawnGroupMakerUtility_Patch.");
-            }
+
+            if (!match) Log.Error("No IL Instruction found for PawnGroupMakerUtility_Patch.");
         }
 
         public static MethodBase TargetMethodHelper()
         {
-            MethodInfo i = typeof(Resources).GetMethods().Single(
+            var i = typeof(Resources).GetMethods().Single(
                 m =>
                     m.Name == "Load" &&
                     m.GetGenericArguments().Length == 1 &&
                     m.GetParameters().Length == 1 &&
-                    m.GetParameters()[0].ParameterType == typeof(String)
-                );
+                    m.GetParameters()[0].ParameterType == typeof(string)
+            );
 
 
             return i.MakeGenericMethod(typeof(Texture2D));

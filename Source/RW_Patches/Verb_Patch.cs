@@ -1,13 +1,12 @@
-﻿using Verse;
-using System;
+﻿using System;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
     public class Verb_Patch
     {
-
-        static readonly Type original = typeof(Verb);
-        static readonly Type patched = typeof(Verb_Patch);
+        private static readonly Type original = typeof(Verb);
+        private static readonly Type patched = typeof(Verb_Patch);
 
         internal static void RunDestructivePatches()
         {
@@ -17,15 +16,10 @@ namespace RimThreaded.RW_Patches
         public static bool get_DirectOwner(Verb __instance, ref IVerbOwner __result)
         {
             if (__instance.verbTracker == null)
-            {
                 __result = null;
-            }
             else
-            {
                 return true;
-            }
             return false;
         }
-
     }
 }

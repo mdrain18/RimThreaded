@@ -4,7 +4,7 @@ using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class RegionTraverser_Patch
+    internal class RegionTraverser_Patch
     {
         [ThreadStatic] public static Queue<RegionTraverser.BFSWorker> freeWorkers;
         [ThreadStatic] public static int NumWorkers;
@@ -13,10 +13,8 @@ namespace RimThreaded.RW_Patches
         {
             NumWorkers = 8;
             freeWorkers = new Queue<RegionTraverser.BFSWorker>(NumWorkers);
-            for (int closedArrayPos = 0; closedArrayPos < NumWorkers; closedArrayPos++)
-            {
+            for (var closedArrayPos = 0; closedArrayPos < NumWorkers; closedArrayPos++)
                 freeWorkers.Enqueue(new RegionTraverser.BFSWorker(closedArrayPos));
-            }
         }
 
         //public static bool RecreateWorkers()
@@ -62,6 +60,5 @@ namespace RimThreaded.RW_Patches
 
         //    return false;
         //}
-
     }
 }

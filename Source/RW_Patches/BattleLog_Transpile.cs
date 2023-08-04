@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
@@ -10,42 +9,37 @@ namespace RimThreaded.RW_Patches
 {
     public class BattleLog_Transpile
     {
+        public static object addLogEntryLock = new object();
+
         internal static void RunNonDestructivePatches()
         {
-            Type original = typeof(BattleLog);
-            Type patched = typeof(BattleLog_Transpile);
+            var original = typeof(BattleLog);
+            var patched = typeof(BattleLog_Transpile);
             RimThreadedHarmony.Transpile(original, patched, nameof(Add));
         }
 
-        public static object addLogEntryLock = new object();
-        public static IEnumerable<CodeInstruction> Add(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Add(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            Type lockObjectType = typeof(object);
-            List<CodeInstruction> loadLockObjectInstructions = new List<CodeInstruction>
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var lockObjectType = typeof(object);
+            var loadLockObjectInstructions = new List<CodeInstruction>
             {
-                new CodeInstruction(OpCodes.Ldsfld, Field(typeof(BattleLog_Transpile), "addLogEntryLock")),
+                new CodeInstruction(OpCodes.Ldsfld, Field(typeof(BattleLog_Transpile), "addLogEntryLock"))
             };
-            LocalBuilder lockObject = iLGenerator.DeclareLocal(lockObjectType);
-            LocalBuilder lockTaken = iLGenerator.DeclareLocal(typeof(bool));
-            foreach (CodeInstruction ci in RimThreadedHarmony.EnterLock(
-                lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
+            var lockObject = iLGenerator.DeclareLocal(lockObjectType);
+            var lockTaken = iLGenerator.DeclareLocal(typeof(bool));
+            foreach (var ci in RimThreadedHarmony.EnterLock(
+                         lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
                 yield return ci;
 
-            while (i < instructionsList.Count - 1)
-            {
-                yield return instructionsList[i++];
-            }
-            foreach (CodeInstruction ci in RimThreadedHarmony.ExitLock(
-                iLGenerator, lockObject, lockTaken, instructionsList[i]))
+            while (i < instructionsList.Count - 1) yield return instructionsList[i++];
+            foreach (var ci in RimThreadedHarmony.ExitLock(
+                         iLGenerator, lockObject, lockTaken, instructionsList[i]))
                 yield return ci;
 
-            while (i < instructionsList.Count)
-            {
-                yield return instructionsList[i++];
-            }
+            while (i < instructionsList.Count) yield return instructionsList[i++];
         }
-
     }
 }

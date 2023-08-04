@@ -1,74 +1,71 @@
-﻿using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using Verse;
-using System.Reflection.Emit;
 using System.Linq;
+using System.Reflection.Emit;
+using HarmonyLib;
+using Verse;
 using static Verse.PawnCapacitiesHandler;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class PawnCapacitiesHandler_Patch
     {
+        private static readonly Type original = typeof(PawnCapacitiesHandler);
+        private static readonly Type patched = typeof(PawnCapacitiesHandler_Patch);
 
-        static readonly Type original = typeof(PawnCapacitiesHandler);
-        static readonly Type patched = typeof(PawnCapacitiesHandler_Patch);
         internal static void RunDestructivePatches()
         {
             RimThreadedHarmony.Prefix(original, patched, "GetLevel");
         }
+
         internal static void RunNonDestructivePatches()
         {
             //RimThreadedHarmony.Transpile(original, patched, "GetLevel"); //wrap method in lock to protect CacheStatus changes
-            RimThreadedHarmony.Transpile(original, patched, "Notify_CapacityLevelsDirty"); //wrap method in lock to protect CacheStatus changes
+            RimThreadedHarmony.Transpile(original, patched,
+                "Notify_CapacityLevelsDirty"); //wrap method in lock to protect CacheStatus changes
         }
 
-        public static IEnumerable<CodeInstruction> GetLevel2(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> GetLevel2(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            List<CodeInstruction> loadLockObjectInstructions = new List<CodeInstruction>
-                {
-                    new CodeInstruction(OpCodes.Ldarg_0)
-                };
-            LocalBuilder lockObject = iLGenerator.DeclareLocal(typeof(PawnCapacitiesHandler));
-            LocalBuilder lockTaken = iLGenerator.DeclareLocal(typeof(bool));
-            foreach (CodeInstruction ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var loadLockObjectInstructions = new List<CodeInstruction>
+            {
+                new CodeInstruction(OpCodes.Ldarg_0)
+            };
+            var lockObject = iLGenerator.DeclareLocal(typeof(PawnCapacitiesHandler));
+            var lockTaken = iLGenerator.DeclareLocal(typeof(bool));
+            foreach (var ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions,
+                         instructionsList[i]))
                 yield return ci;
 
-            while (i < instructionsList.Count - 3)
-            {
-                yield return instructionsList[i++];
-            }
+            while (i < instructionsList.Count - 3) yield return instructionsList[i++];
 
-            foreach (CodeInstruction ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
+            foreach (var ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
                 yield return ci;
 
-            while (i < instructionsList.Count)
-            {
-                yield return instructionsList[i++];
-            }
+            while (i < instructionsList.Count) yield return instructionsList[i++];
         }
-        public static IEnumerable<CodeInstruction> Notify_CapacityLevelsDirty(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+
+        public static IEnumerable<CodeInstruction> Notify_CapacityLevelsDirty(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
-            List<CodeInstruction> loadLockObjectInstructions = new List<CodeInstruction>
-                {
-                    new CodeInstruction(OpCodes.Ldarg_0)
-                };
-            LocalBuilder lockObject = iLGenerator.DeclareLocal(typeof(PawnCapacitiesHandler));
-            LocalBuilder lockTaken = iLGenerator.DeclareLocal(typeof(bool));
-            foreach (CodeInstruction ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions, instructionsList[i]))
+            var instructionsList = instructions.ToList();
+            var i = 0;
+            var loadLockObjectInstructions = new List<CodeInstruction>
+            {
+                new CodeInstruction(OpCodes.Ldarg_0)
+            };
+            var lockObject = iLGenerator.DeclareLocal(typeof(PawnCapacitiesHandler));
+            var lockTaken = iLGenerator.DeclareLocal(typeof(bool));
+            foreach (var ci in RimThreadedHarmony.EnterLock(lockObject, lockTaken, loadLockObjectInstructions,
+                         instructionsList[i]))
                 yield return ci;
 
-            while (i < instructionsList.Count - 1)
-            {
-                yield return instructionsList[i++];
-            }
+            while (i < instructionsList.Count - 1) yield return instructionsList[i++];
 
-            foreach (CodeInstruction ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
+            foreach (var ci in RimThreadedHarmony.ExitLock(iLGenerator, lockObject, lockTaken, instructionsList[i]))
                 yield return ci;
 
             yield return instructionsList[i];
@@ -82,31 +79,32 @@ namespace RimThreaded.RW_Patches
                 __result = 0f;
                 return false;
             }
-            if (__instance.cachedCapacityLevels == null)
-            {
-                __instance.Notify_CapacityLevelsDirty();
-            }
+
+            if (__instance.cachedCapacityLevels == null) __instance.Notify_CapacityLevelsDirty();
             lock (__instance)
             {
-                CacheElement cacheElement = __instance.cachedCapacityLevels[capacity];
+                var cacheElement = __instance.cachedCapacityLevels[capacity];
                 if (cacheElement.status == CacheStatus.Caching)
                 {
                     Log.Error($"Detected infinite stat recursion when evaluating {capacity}");
                     __result = 0f;
                     return false;
                 }
+
                 if (cacheElement.status == CacheStatus.Uncached)
                 {
                     cacheElement.status = CacheStatus.Caching;
                     try
                     {
-                        cacheElement.value = PawnCapacityUtility.CalculateCapacityLevel(__instance.pawn.health.hediffSet, capacity);
+                        cacheElement.value =
+                            PawnCapacityUtility.CalculateCapacityLevel(__instance.pawn.health.hediffSet, capacity);
                     }
                     finally
                     {
                         cacheElement.status = CacheStatus.Cached;
                     }
                 }
+
                 __result = cacheElement.value;
                 return false;
             }
@@ -126,6 +124,5 @@ namespace RimThreaded.RW_Patches
         //        }
         //    }
         //}
-
     }
 }

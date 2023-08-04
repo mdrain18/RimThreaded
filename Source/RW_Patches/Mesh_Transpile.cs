@@ -1,25 +1,24 @@
-﻿using HarmonyLib;
-using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine;
-using System.Reflection.Emit;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
+using UnityEngine;
 
 namespace RimThreaded.RW_Patches
 {
     public class Mesh_Transpile
     {
-        public static IEnumerable<CodeInstruction> Mesh(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
+        public static IEnumerable<CodeInstruction> Mesh(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
         {
-
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
+            var instructionsList = instructions.ToList();
+            var i = 0;
             while (i < instructionsList.Count)
-            {
                 if (
                     instructionsList[i].opcode == OpCodes.Call &&
-                    (MethodInfo)instructionsList[i].operand == AccessTools.Method(typeof(Mesh), "InternalCreate")
-                    )
+                    (MethodInfo) instructionsList[i].operand == AccessTools.Method(typeof(Mesh), "InternalCreate")
+                )
                 {
                 }
                 else
@@ -27,7 +26,6 @@ namespace RimThreaded.RW_Patches
                     yield return instructionsList[i];
                     i++;
                 }
-            }
         }
     }
 }

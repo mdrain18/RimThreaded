@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Verse;
-using RimWorld.Planet;
 using System.Threading;
 using RimWorld;
+using RimWorld.Planet;
+using Verse;
 
 namespace RimThreaded.RW_Patches
 {
@@ -13,6 +13,9 @@ namespace RimThreaded.RW_Patches
     {
         [ThreadStatic] public static List<Pawn> tmpPawnsToRemove;
 
+        public static List<Pawn> worldPawnsAlive;
+        public static int worldPawnsTicks;
+
         internal static void InitializeThreadStatics()
         {
             tmpPawnsToRemove = new List<Pawn>();
@@ -20,14 +23,15 @@ namespace RimThreaded.RW_Patches
 
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(WorldPawns);
-            Type patched = typeof(WorldPawns_Patch);
+            var original = typeof(WorldPawns);
+            var patched = typeof(WorldPawns_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(WorldPawnsTick));
             RimThreadedHarmony.Prefix(original, patched, nameof(get_AllPawnsAlive));
             RimThreadedHarmony.Prefix(original, patched, nameof(AddPawn));
             RimThreadedHarmony.Prefix(original, patched, nameof(RemovePawn));
             RimThreadedHarmony.Prefix(original, patched, nameof(Notify_PawnDestroyed));
         }
+
         public static bool Notify_PawnDestroyed(WorldPawns __instance, Pawn p)
         {
             lock (__instance)
@@ -35,18 +39,20 @@ namespace RimThreaded.RW_Patches
                 if (!__instance.pawnsAlive.Contains(p) && !__instance.pawnsMothballed.Contains(p))
                     return false;
 
-                HashSet<Pawn> newPawnsAlive = new HashSet<Pawn>(__instance.pawnsAlive);
+                var newPawnsAlive = new HashSet<Pawn>(__instance.pawnsAlive);
                 newPawnsAlive.Remove(p);
                 __instance.pawnsAlive = newPawnsAlive;
 
-                HashSet<Pawn> newPawnsMothballed = new HashSet<Pawn>(__instance.pawnsMothballed);
+                var newPawnsMothballed = new HashSet<Pawn>(__instance.pawnsMothballed);
                 newPawnsMothballed.Remove(p);
                 __instance.pawnsMothballed = newPawnsMothballed;
 
                 __instance.pawnsDead.Add(p);
             }
+
             return false;
         }
+
         public static bool RemovePawn(WorldPawns __instance, Pawn p)
         {
             lock (__instance)
@@ -55,9 +61,7 @@ namespace RimThreaded.RW_Patches
                     Log.Error("Tried to remove pawn " + p + " from " + __instance.GetType() + ", but it's not here.");
                 __instance.gc.CancelGCPass();
                 if (__instance.pawnsMothballed.Contains(p))
-                {
                     if (Find.TickManager.TicksGame % 15000 != 0)
-                    {
                         try
                         {
                             p.TickMothballed(Find.TickManager.TicksGame % 15000);
@@ -66,28 +70,29 @@ namespace RimThreaded.RW_Patches
                         {
                             Log.Error("Exception ticking mothballed world pawn (just before removing): " + ex);
                         }
-                    }
-                }
-                HashSet<Pawn> newPawnsAlive = new HashSet<Pawn>(__instance.pawnsAlive);
+
+                var newPawnsAlive = new HashSet<Pawn>(__instance.pawnsAlive);
                 newPawnsAlive.Remove(p);
                 __instance.pawnsAlive = newPawnsAlive;
 
-                HashSet<Pawn> newPawnsMothballed = new HashSet<Pawn>(__instance.pawnsMothballed);
+                var newPawnsMothballed = new HashSet<Pawn>(__instance.pawnsMothballed);
                 newPawnsMothballed.Remove(p);
                 __instance.pawnsMothballed = newPawnsMothballed;
 
-                HashSet<Pawn> newPawnsDead = new HashSet<Pawn>(__instance.pawnsDead);
+                var newPawnsDead = new HashSet<Pawn>(__instance.pawnsDead);
                 newPawnsDead.Remove(p);
                 __instance.pawnsDead = newPawnsDead;
 
-                HashSet<Pawn> newPawnsForcefullyKeptAsWorldPawns = new HashSet<Pawn>(__instance.pawnsForcefullyKeptAsWorldPawns);
+                var newPawnsForcefullyKeptAsWorldPawns = new HashSet<Pawn>(__instance.pawnsForcefullyKeptAsWorldPawns);
                 newPawnsDead.Remove(p);
                 __instance.pawnsForcefullyKeptAsWorldPawns = newPawnsForcefullyKeptAsWorldPawns;
 
                 p.becameWorldPawnTickAbs = -1;
             }
+
             return false;
         }
+
         public static bool AddPawn(WorldPawns __instance, Pawn p)
         {
             lock (__instance)
@@ -101,7 +106,7 @@ namespace RimThreaded.RW_Patches
                 {
                     try
                     {
-                        int num = 0;
+                        var num = 0;
                         while (__instance.ShouldAutoTendTo(p) && num < 30)
                         {
                             TendUtility.DoTend(null, p, null);
@@ -110,12 +115,17 @@ namespace RimThreaded.RW_Patches
                     }
                     catch (Exception ex)
                     {
-                        Log.ErrorOnce("Exception tending to a world pawn " + p.ToStringSafe() + ". Suppressing further errors. " + ex, p.thingIDNumber ^ 0x85C154);
+                        Log.ErrorOnce(
+                            "Exception tending to a world pawn " + p.ToStringSafe() + ". Suppressing further errors. " +
+                            ex, p.thingIDNumber ^ 0x85C154);
                     }
+
                     __instance.pawnsAlive.Add(p);
                 }
+
                 p.Notify_PassedToWorld();
             }
+
             return false;
         }
 
@@ -137,8 +147,9 @@ namespace RimThreaded.RW_Patches
             {
                 pawnArray = __instance.pawnsMothballed.ToArray();
             }
+
             Pawn p;
-            for (int index = 0; index < pawnArray.Length; index++)
+            for (var index = 0; index < pawnArray.Length; index++)
             {
                 p = pawnArray[index];
                 try
@@ -147,24 +158,28 @@ namespace RimThreaded.RW_Patches
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorOnce("Exception ticking mothballed world pawn. Suppressing further errors. " + ex, p.thingIDNumber ^ 1535437893);
+                    Log.ErrorOnce("Exception ticking mothballed world pawn. Suppressing further errors. " + ex,
+                        p.thingIDNumber ^ 1535437893);
                 }
             }
+
             lock (__instance.pawnsAlive)
             {
                 pawnArray = __instance.pawnsAlive.ToArray();
             }
-            for (int index = 0; index < pawnArray.Length; index++)
+
+            for (var index = 0; index < pawnArray.Length; index++)
             {
                 p = pawnArray[index];
                 if (__instance.ShouldMothball(p))
                 {
                     lock (__instance)
                     {
-                        HashSet<Pawn> newSet = new HashSet<Pawn>(__instance.pawnsAlive);
+                        var newSet = new HashSet<Pawn>(__instance.pawnsAlive);
                         newSet.Remove(p);
                         __instance.pawnsAlive = newSet;
                     }
+
                     lock (__instance.pawnsMothballed)
                     {
                         __instance.pawnsMothballed.Add(p);
@@ -182,8 +197,7 @@ namespace RimThreaded.RW_Patches
                 DoMothballProcessing(__instance);
 
             tmpPawnsToRemove.Clear();
-            foreach (Pawn pawn in __instance.pawnsDead)
-            {
+            foreach (var pawn in __instance.pawnsDead)
                 if (pawn == null)
                 {
                     Log.ErrorOnce("Dead null world pawn detected, discarding.", 94424128);
@@ -191,17 +205,19 @@ namespace RimThreaded.RW_Patches
                 }
                 else if (pawn.Discarded)
                 {
-                    Log.Error("World pawn " + pawn + " has been discarded while still being a world pawn. This should never happen, because discard destroy mode means that the pawn is no longer managed by anything. Pawn should have been removed from the world first.");
+                    Log.Error("World pawn " + pawn +
+                              " has been discarded while still being a world pawn. This should never happen, because discard destroy mode means that the pawn is no longer managed by anything. Pawn should have been removed from the world first.");
                     tmpPawnsToRemove.Add(pawn);
                 }
-            }
+
             lock (__instance)
             {
-                HashSet<Pawn> newSet = new HashSet<Pawn>(__instance.pawnsDead);
-                foreach (Pawn p in tmpPawnsToRemove)
+                var newSet = new HashSet<Pawn>(__instance.pawnsDead);
+                foreach (var p in tmpPawnsToRemove)
                     newSet.Remove(p);
                 __instance.pawnsDead = newSet;
             }
+
             try
             {
                 __instance.gc.WorldPawnGCTick();
@@ -214,14 +230,11 @@ namespace RimThreaded.RW_Patches
             return false;
         }
 
-        public static List<Pawn> worldPawnsAlive;
-        public static int worldPawnsTicks;
-
         public static void WorldPawnsPrepare()
         {
             try
             {
-                World world = Find.World;
+                var world = Find.World;
                 world.worldPawns.WorldPawnsTick();
             }
             catch (Exception ex3)
@@ -235,25 +248,31 @@ namespace RimThreaded.RW_Patches
         {
             while (true)
             {
-                int index = Interlocked.Decrement(ref worldPawnsTicks);
+                var index = Interlocked.Decrement(ref worldPawnsTicks);
                 if (index < 0) return;
-                Pawn pawn = worldPawnsAlive[index];
+                var pawn = worldPawnsAlive[index];
                 try
                 {
                     pawn.Tick();
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorOnce("Exception ticking world pawn " + pawn.ToStringSafe() + ". Suppressing further errors. " + ex, pawn.thingIDNumber ^ 1148571423);
+                    Log.ErrorOnce(
+                        "Exception ticking world pawn " + pawn.ToStringSafe() + ". Suppressing further errors. " + ex,
+                        pawn.thingIDNumber ^ 1148571423);
                 }
+
                 try
                 {
-                    if (!pawn.Dead && !pawn.Destroyed && pawn.IsHashIntervalTick(7500) && !pawn.IsCaravanMember() && !PawnUtility.IsTravelingInTransportPodWorldObject(pawn))
+                    if (!pawn.Dead && !pawn.Destroyed && pawn.IsHashIntervalTick(7500) && !pawn.IsCaravanMember() &&
+                        !PawnUtility.IsTravelingInTransportPodWorldObject(pawn))
                         TendUtility.DoTend(null, pawn, null);
                 }
                 catch (Exception ex)
                 {
-                    Log.ErrorOnce("Exception tending to a world pawn " + pawn.ToStringSafe() + ". Suppressing further errors. " + ex, pawn.thingIDNumber ^ 8765780);
+                    Log.ErrorOnce(
+                        "Exception tending to a world pawn " + pawn.ToStringSafe() + ". Suppressing further errors. " +
+                        ex, pawn.thingIDNumber ^ 8765780);
                 }
             }
         }

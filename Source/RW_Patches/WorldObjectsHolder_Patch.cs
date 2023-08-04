@@ -1,19 +1,22 @@
-﻿using System.Collections.Generic;
-using RimWorld.Planet;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
+using RimWorld.Planet;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-
     public class WorldObjectsHolder_Patch
     {
+        public static List<WorldObject> worldObjectsTickList;
+
+        public static int worldObjectsTicks;
+
         //Class was largely overhauled to allow multithreaded ticking for WorldPawns.Tick()
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(WorldObjectsHolder);
-            Type patched = typeof(WorldObjectsHolder_Patch);
+            var original = typeof(WorldObjectsHolder);
+            var patched = typeof(WorldObjectsHolder_Patch);
             RimThreadedHarmony.Prefix(original, patched, "WorldObjectsHolderTick");
         }
 
@@ -24,14 +27,11 @@ namespace RimThreaded.RW_Patches
             return false;
         }
 
-        public static List<WorldObject> worldObjectsTickList;
-        public static int worldObjectsTicks;
-
         public static void WorldObjectsPrepare()
         {
             try
             {
-                World world = Find.World;
+                var world = Find.World;
                 world.worldObjects.WorldObjectsHolderTick();
             }
             catch (Exception ex3)
@@ -44,9 +44,9 @@ namespace RimThreaded.RW_Patches
         {
             while (true)
             {
-                int index = Interlocked.Decrement(ref worldObjectsTicks);
+                var index = Interlocked.Decrement(ref worldObjectsTicks);
                 if (index < 0) return;
-                WorldObject worldObject = worldObjectsTickList[index];
+                var worldObject = worldObjectsTickList[index];
                 try
                 {
                     worldObject.Tick();

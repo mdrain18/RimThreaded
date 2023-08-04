@@ -1,14 +1,7 @@
-﻿using System;
-using Verse;
-using static RimThreaded.RimThreaded;
-using static System.Threading.Thread;
-
-namespace RimThreaded.RW_Patches
+﻿namespace RimThreaded.RW_Patches
 {
-
     public class GraphicDatabaseHeadRecords_Patch
     {
-
         internal static void RunDestructivePatches()
         {
             //Type original = typeof(GraphicDatabaseHeadRecords);

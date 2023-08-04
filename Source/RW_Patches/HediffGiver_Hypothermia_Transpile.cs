@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -13,31 +12,35 @@ namespace RimThreaded.RW_Patches
     {
         internal static void RunNonDestructivePatches()
         {
-            Type original = typeof(HediffGiver_Hypothermia);
-            Type patched = typeof(HediffGiver_Hypothermia_Transpile);
+            var original = typeof(HediffGiver_Hypothermia);
+            var patched = typeof(HediffGiver_Hypothermia_Transpile);
             RimThreadedHarmony.Transpile(original, patched, "OnIntervalPassed");
         }
-        public static IEnumerable<CodeInstruction> OnIntervalPassed(IEnumerable<CodeInstruction> instructions, ILGenerator iLGenerator)
-        {
-            LocalBuilder comfortableTemperatureMin = iLGenerator.DeclareLocal(typeof(float));
-            LocalBuilder minTemp = iLGenerator.DeclareLocal(typeof(float));
 
-            List<CodeInstruction> instructionsList = instructions.ToList();
-            int i = 0;
+        public static IEnumerable<CodeInstruction> OnIntervalPassed(IEnumerable<CodeInstruction> instructions,
+            ILGenerator iLGenerator)
+        {
+            var comfortableTemperatureMin = iLGenerator.DeclareLocal(typeof(float));
+            var minTemp = iLGenerator.DeclareLocal(typeof(float));
+
+            var instructionsList = instructions.ToList();
+            var i = 0;
 
 
             while (i < instructionsList.Count)
-            {
                 if (i + 1 < instructionsList.Count &&
                     instructionsList[i].opcode == OpCodes.Ldarg_1 &&
                     instructionsList[i + 1].opcode == OpCodes.Call &&
-                    (MethodInfo)instructionsList[i + 1].operand == AccessTools.Method(typeof(GenTemperature), "ComfortableTemperatureRange", new Type[] { typeof(Pawn) })
-                    )
+                    (MethodInfo) instructionsList[i + 1].operand == AccessTools.Method(typeof(GenTemperature),
+                        "ComfortableTemperatureRange", new[] {typeof(Pawn)})
+                   )
                 {
                     yield return new CodeInstruction(OpCodes.Ldarg_1);
-                    yield return new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(StatDefOf), "ComfyTemperatureMin"));
+                    yield return new CodeInstruction(OpCodes.Ldsfld,
+                        AccessTools.Field(typeof(StatDefOf), "ComfyTemperatureMin"));
                     yield return new CodeInstruction(OpCodes.Ldc_I4_1);
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(StatExtension), "GetStatValue"));
+                    yield return new CodeInstruction(OpCodes.Call,
+                        AccessTools.Method(typeof(StatExtension), "GetStatValue"));
                     yield return new CodeInstruction(OpCodes.Stloc, comfortableTemperatureMin.LocalIndex);
                     yield return new CodeInstruction(OpCodes.Ldloc, comfortableTemperatureMin.LocalIndex);
                     yield return new CodeInstruction(OpCodes.Ldc_R4, 10f);
@@ -60,9 +63,6 @@ namespace RimThreaded.RW_Patches
                     yield return instructionsList[i];
                     i++;
                 }
-            }
-
         }
-
     }
 }

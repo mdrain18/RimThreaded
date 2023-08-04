@@ -5,7 +5,7 @@ using Verse.Sound;
 
 namespace RimThreaded.RW_Patches
 {
-    class SustainerManager_Patch
+    internal class SustainerManager_Patch
     {
         [ThreadStatic] public static Dictionary<SoundDef, List<Sustainer>> playingPerDef;
 
@@ -16,8 +16,8 @@ namespace RimThreaded.RW_Patches
 
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(SustainerManager);
-            Type patched = typeof(SustainerManager_Patch);
+            var original = typeof(SustainerManager);
+            var patched = typeof(SustainerManager_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(RegisterSustainer));
             RimThreadedHarmony.Prefix(original, patched, nameof(DeregisterSustainer));
             //RimThreadedHarmony.Prefix(original, patched, nameof(UpdateAllSustainerScopes));
@@ -29,68 +29,76 @@ namespace RimThreaded.RW_Patches
             {
                 __instance.allSustainers.Add(newSustainer);
             }
+
             return false;
         }
+
         public static bool DeregisterSustainer(SustainerManager __instance, Sustainer oldSustainer)
         {
             lock (__instance.allSustainers)
             {
-                List<Sustainer> newSustainers = new List<Sustainer>(__instance.allSustainers);
+                var newSustainers = new List<Sustainer>(__instance.allSustainers);
                 newSustainers.Remove(oldSustainer);
                 __instance.allSustainers = newSustainers;
             }
+
             return false;
         }
+
         public static bool UpdateAllSustainerScopes(SustainerManager __instance)
         {
             playingPerDef.Clear(); //replaced playingPerDef ThreadStatics
-            List<Sustainer> snapshotSustainers = __instance.allSustainers;
-            for (int index = 0; index < snapshotSustainers.Count; ++index)
+            var snapshotSustainers = __instance.allSustainers;
+            for (var index = 0; index < snapshotSustainers.Count; ++index)
             {
-                Sustainer allSustainer = snapshotSustainers[index];
+                var allSustainer = snapshotSustainers[index];
                 if (!playingPerDef.ContainsKey(allSustainer.def))
                 {
-                    List<Sustainer> sustainerList = SimplePool_Patch<List<Sustainer>>.Get();
+                    var sustainerList = SimplePool_Patch<List<Sustainer>>.Get();
                     sustainerList.Add(allSustainer);
                     playingPerDef.Add(allSustainer.def, sustainerList);
                 }
                 else
+                {
                     playingPerDef[allSustainer.def].Add(allSustainer);
+                }
             }
-            foreach (KeyValuePair<SoundDef, List<Sustainer>> keyValuePair in playingPerDef)
+
+            foreach (var keyValuePair in playingPerDef)
             {
-                SoundDef key = keyValuePair.Key;
-                List<Sustainer> sustainerList = keyValuePair.Value;
+                var key = keyValuePair.Key;
+                var sustainerList = keyValuePair.Value;
                 if (sustainerList.Count - key.maxVoices < 0)
                 {
-                    for (int index = 0; index < sustainerList.Count; ++index)
+                    for (var index = 0; index < sustainerList.Count; ++index)
                         sustainerList[index].scopeFader.inScope = true;
                 }
                 else
                 {
-                    for (int index = 0; index < sustainerList.Count; ++index)
+                    for (var index = 0; index < sustainerList.Count; ++index)
                         sustainerList[index].scopeFader.inScope = false;
                     sustainerList.Sort(SustainerManager.SortSustainersByCameraDistanceCached);
-                    int num = 0;
-                    for (int index = 0; index < sustainerList.Count; ++index)
+                    var num = 0;
+                    for (var index = 0; index < sustainerList.Count; ++index)
                     {
                         sustainerList[index].scopeFader.inScope = true;
                         ++num;
                         if (num >= key.maxVoices)
                             break;
                     }
-                    for (int index = 0; index < sustainerList.Count; ++index)
-                    {
+
+                    for (var index = 0; index < sustainerList.Count; ++index)
                         if (!sustainerList[index].scopeFader.inScope)
                             sustainerList[index].scopeFader.inScopePercent = 0.0f;
-                    }
                 }
             }
-            foreach (KeyValuePair<SoundDef, List<Sustainer>> keyValuePair in playingPerDef)
+
+            foreach (var keyValuePair in playingPerDef)
             {
                 keyValuePair.Value.Clear();
                 SimplePool_Patch<List<Sustainer>>.Return(keyValuePair.Value);
             }
+
             //playingPerDef.Clear();
             return false;
         }

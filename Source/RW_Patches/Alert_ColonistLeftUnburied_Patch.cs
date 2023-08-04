@@ -1,15 +1,14 @@
 ﻿using RimWorld;
-using System;
 using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class Alert_ColonistLeftUnburied_Patch
+    internal class Alert_ColonistLeftUnburied_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(Alert_ColonistLeftUnburied);
-            Type patched = typeof(Alert_ColonistLeftUnburied_Patch);
+            var original = typeof(Alert_ColonistLeftUnburied);
+            var patched = typeof(Alert_ColonistLeftUnburied_Patch);
             RimThreadedHarmony.Prefix(original, patched, nameof(IsCorpseOfColonist));
         }
 
@@ -20,25 +19,30 @@ namespace RimThreaded.RW_Patches
                 __result = false;
                 return false;
             }
-            Pawn InnerPawn = corpse.InnerPawn;
+
+            var InnerPawn = corpse.InnerPawn;
             if (InnerPawn == null)
             {
                 __result = false;
                 return false;
             }
-            ThingDef def = InnerPawn.def;
+
+            var def = InnerPawn.def;
             if (def == null)
             {
                 __result = false;
                 return false;
             }
-            RaceProperties race = def.race;
+
+            var race = def.race;
             if (race == null)
             {
                 __result = false;
                 return false;
             }
-            __result = InnerPawn.Faction == Faction.OfPlayer && race.Humanlike && !InnerPawn.IsQuestLodger() && !InnerPawn.IsSlave && !corpse.IsInAnyStorage();
+
+            __result = InnerPawn.Faction == Faction.OfPlayer && race.Humanlike && !InnerPawn.IsQuestLodger() &&
+                       !InnerPawn.IsSlave && !corpse.IsInAnyStorage();
             return false;
         }
     }

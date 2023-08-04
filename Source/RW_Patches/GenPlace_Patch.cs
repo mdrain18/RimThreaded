@@ -3,26 +3,30 @@ using Verse;
 
 namespace RimThreaded.RW_Patches
 {
-    class GenPlace_Patch
+    internal class GenPlace_Patch
     {
         internal static void RunDestructivePatches()
         {
-            Type original = typeof(GenPlace);
-            Type patched = typeof(GenPlace_Patch);
-            RimThreadedHarmony.Prefix(original, patched, nameof(TryPlaceThing), new Type[] { typeof(Thing), typeof(IntVec3),
-              typeof(Map), typeof(ThingPlaceMode), typeof(Thing).MakeByRefType(), typeof(Action<Thing, int>), typeof(Predicate<IntVec3>),
-              typeof(Rot4)});
+            var original = typeof(GenPlace);
+            var patched = typeof(GenPlace_Patch);
+            RimThreadedHarmony.Prefix(original, patched, nameof(TryPlaceThing), new[]
+            {
+                typeof(Thing), typeof(IntVec3),
+                typeof(Map), typeof(ThingPlaceMode), typeof(Thing).MakeByRefType(), typeof(Action<Thing, int>),
+                typeof(Predicate<IntVec3>),
+                typeof(Rot4)
+            });
         }
 
         public static bool TryPlaceThing(ref bool __result,
-          Thing thing,
-          IntVec3 center,
-          Map map,
-          ThingPlaceMode mode,
-          out Thing lastResultingThing,
-          Action<Thing, int> placedAction = null,
-          Predicate<IntVec3> nearPlaceValidator = null,
-          Rot4 rot = default)
+            Thing thing,
+            IntVec3 center,
+            Map map,
+            ThingPlaceMode mode,
+            out Thing lastResultingThing,
+            Action<Thing, int> placedAction = null,
+            Predicate<IntVec3> nearPlaceValidator = null,
+            Rot4 rot = default)
         {
             if (map == null)
             {
@@ -31,19 +35,22 @@ namespace RimThreaded.RW_Patches
                 __result = false;
                 return false;
             }
+
             if (thing == null)
             {
                 lastResultingThing = null;
                 __result = false;
                 return false;
             }
-            ThingDef def = thing.def;
+
+            var def = thing.def;
             if (def == null)
             {
                 lastResultingThing = null;
                 __result = false;
                 return false;
             }
+
             if (def.category == ThingCategory.Filth)
                 mode = ThingPlaceMode.Direct;
             if (mode == ThingPlaceMode.Direct)
@@ -60,8 +67,8 @@ namespace RimThreaded.RW_Patches
                     return false;
                 if (GenPlace.TryPlaceDirect(thing, bestSpot, rot, map, out lastResultingThing, placedAction))
                     return true;
-            }
-            while (thing.stackCount != stackCount);
+            } while (thing.stackCount != stackCount);
+
             Log.Error("Failed to place " + thing + " at " + center + " in mode " + mode + ".");
             lastResultingThing = null;
             __result = false;
