@@ -46,16 +46,6 @@ namespace RimThreaded.RW_Patches
             int mapIndexOrState = __instance.mapIndexOrState;
             if (mapIndexOrState >= 0)
                 __result = Find.Maps[mapIndexOrState];
-            //else
-            //{
-            //    lock (lastMapIndex)
-            //    {
-            //        if (lastMapIndex.TryGetValue(__instance, out sbyte lastIndex))
-            //        {
-            //            __result = Find.Maps[lastIndex];
-            //        }
-            //    }
-            //}
             return false;
         }
     }

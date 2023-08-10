@@ -557,7 +557,6 @@ namespace RimThreaded
                                                                 thing = tryThing;
                                                                 break;
                                                             }
-                                                        //else if (i > -40) { Log.Warning("No Hauling Job " + tryThing.ToString() + " at pos " + tryThing.Position.ToString() + " for pawn " + pawn.ToString() + " tries: " + i.ToString()); }
 #if DEBUG
 														else if (i > -4000) { Log.Warning("Can't HaulToStorageJob " + tryThing + " at pos " + tryThing.Position + " for pawn " + pawn + " tries: " + i); }
 #endif
